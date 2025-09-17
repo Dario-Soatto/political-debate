@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { PoliticalAgent } from '@/lib/agents/agent';
 import { ConversationManager, ConversationTurn } from '@/lib/conversation/conversationManager';
 import { createLiberalBeliefSystem, createConservativeBeliefSystem } from '@/lib/beliefs/beliefSystem';
+import { addReflectionToAgent } from '@/lib/memory/reflection';
 
 export default function Home() {
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
@@ -19,6 +20,7 @@ export default function Home() {
   const [newTopic, setNewTopic] = useState('');
   const [showTopicInput, setShowTopicInput] = useState(false);
   const [conversationTopics, setConversationTopics] = useState<Array<{topic: string, startIndex: number}>>([]);
+  const [isGeneratingReflection, setIsGeneratingReflection] = useState(false);
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -146,6 +148,26 @@ export default function Home() {
       console.error('Error continuing with new topic:', error);
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const generateReflectionForAgent = async (agent: PoliticalAgent, agentType: 'liberal' | 'conservative') => {
+    setIsGeneratingReflection(true);
+    
+    try {
+      await addReflectionToAgent(agent, 5); // Reflect on last 5 memories
+      
+      // Force a re-render by updating the agents state
+      setAgents(prev => ({
+        ...prev,
+        [agentType]: agent
+      }));
+      
+      console.log(`Generated reflection for ${agent.name}`);
+    } catch (error) {
+      console.error(`Error generating reflection for ${agent.name}:`, error);
+    } finally {
+      setIsGeneratingReflection(false);
     }
   };
 
@@ -369,7 +391,16 @@ export default function Home() {
             {/* Alex's Memories and Beliefs */}
             {agents.liberal && (
               <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-800 mb-3">Alex (Liberal)</h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-blue-800">Alex (Liberal)</h3>
+                  <button
+                    onClick={() => generateReflectionForAgent(agents.liberal!, 'liberal')}
+                    disabled={isGeneratingReflection || agents.liberal.memories.filter(m => m.type === 'observation').length === 0}
+                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isGeneratingReflection ? 'Reflecting...' : 'Generate Reflection'}
+                  </button>
+                </div>
                 
                 {/* Memories Section */}
                 <div className="mb-4">
@@ -450,7 +481,16 @@ export default function Home() {
             {/* Jordan's Memories and Beliefs */}
             {agents.conservative && (
               <div className="bg-red-50 rounded-lg p-4">
-                <h3 className="font-semibold text-red-800 mb-3">Jordan (Conservative)</h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-red-800">Jordan (Conservative)</h3>
+                  <button
+                    onClick={() => generateReflectionForAgent(agents.conservative!, 'conservative')}
+                    disabled={isGeneratingReflection || agents.conservative.memories.filter(m => m.type === 'observation').length === 0}
+                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isGeneratingReflection ? 'Reflecting...' : 'Generate Reflection'}
+                  </button>
+                </div>
                 
                 {/* Memories Section */}
                 <div className="mb-4">
