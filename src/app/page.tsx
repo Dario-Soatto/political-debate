@@ -174,7 +174,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">Political AI Debate</h1>
+        <h1 className="text-3xl font-bold font-mono text-black text-center mb-8">Political AI Debate</h1>
         
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -186,7 +186,7 @@ export default function Home() {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
                 disabled={isRunning}
               />
             </div>
@@ -200,7 +200,7 @@ export default function Home() {
                 max="20"
                 value={numTurns}
                 onChange={(e) => setNumTurns(parseInt(e.target.value) || 1)}
-                className="w-full p-3 border border-gray-300 rounded-md"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
                 disabled={isRunning}
               />
             </div>
@@ -257,7 +257,7 @@ export default function Home() {
                     value={newTopic}
                     onChange={(e) => setNewTopic(e.target.value)}
                     placeholder="Enter a new topic to discuss..."
-                    className="w-full p-3 border border-gray-300 rounded-md"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 placeholder-gray-500"
                     disabled={isRunning}
                   />
                 </div>
@@ -271,7 +271,7 @@ export default function Home() {
                     max="20"
                     value={numTurns}
                     onChange={(e) => setNumTurns(parseInt(e.target.value) || 1)}
-                    className="w-full p-3 border border-gray-300 rounded-md"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
                     disabled={isRunning}
                   />
                 </div>
@@ -312,7 +312,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Conversation History */}
           <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold mb-4">Conversation</h2>
+            <h2 className="text-xl font-bold font-mono text-black mb-4">Conversation</h2>
             <div className="space-y-4">
               {conversationHistory.map((turn, index) => {
                 // Check if we should show a topic header before this turn
@@ -386,7 +386,7 @@ export default function Home() {
 
           {/* Agent Memories and Beliefs */}
           <div className="space-y-6">
-            <h2 className="text-xl font-bold">Agent Memories & Beliefs</h2>
+            <h2 className="text-xl font-bold font-mono text-black">Agent Memories & Beliefs</h2>
             
             {/* Alex's Memories and Beliefs */}
             {agents.liberal && (

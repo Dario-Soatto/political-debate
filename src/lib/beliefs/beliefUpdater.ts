@@ -149,16 +149,17 @@ You recently had this reflection:
 Your current belief about "${targetBelief.label}" is:
 "${targetBelief.description}"
 
-Based on your reflection, how might your understanding of "${targetBelief.label}" evolve? 
+Based on your reflection, write an updated belief description for "${targetBelief.label}". 
 
 Guidelines:
-1. Keep the update realistic - beliefs don't change dramatically overnight
-2. The update should logically connect to your reflection
-3. Write the updated belief description in 1-2 sentences, similar in length to the original. Do not be verbose.
-4. If no change is warranted, you may keep the belief exactly the same
+1. Keep the update subtle and realistic - beliefs don't change dramatically overnight
+2. Stay true to your overall political orientation (${agentName === 'Alex' ? 'liberal' : 'conservative'})
+3. The update should logically connect to your reflection
+4. Maintain the core essence of the belief while allowing for nuanced evolution
+5. Write ONLY the updated belief description in 1-2 sentences, similar in length to the original
+6. Do not include any preamble, explanation, or commentary - just the new description
 
-
-Updated belief description:`;
+Updated description:`;
 
   const response = await fetch('/api/claude', {
     method: 'POST',
@@ -196,14 +197,18 @@ to:
 Your current belief about the related topic "${connectedBelief.label}" is:
 "${connectedBelief.description}"
 
-Given how your understanding of "${targetBelief.label}" has evolved, how might this influence your belief about "${connectedBelief.label}"?
+Write an updated belief description for "${connectedBelief.label}" that reflects how your evolved understanding of "${targetBelief.label}" might subtly influence it.
 
 Guidelines:
-1. Make realistic adjustments
-2. If no change is warranted, you may keep the belief exactly the same
-3. Write the updated belief description in 1-2 sentences, similar in length to the original. Do not be verbose.
+1. Make only VERY subtle adjustments - connected beliefs should change less than the primary belief
+2. Stay true to your overall political orientation (${agentName === 'Alex' ? 'liberal' : 'conservative'})
+3. Ensure the beliefs remain consistent with each other
+4. The change should be logical but minimal
+5. If no change is warranted, you may keep the belief exactly the same
+6. Write ONLY the updated belief description in 1-2 sentences, similar in length to the original
+7. Do not include any preamble, explanation, or commentary - just the new description
 
-Updated belief description:`;
+Updated description:`;
 
   const response = await fetch('/api/claude', {
     method: 'POST',
