@@ -1,6 +1,7 @@
 // Create src/lib/beliefs/reflection.ts
 import { PoliticalAgent } from '@/lib/agents/agent';
 import { Memory } from '@/types/agent';
+import { updateBeliefSystemFromReflection } from '@/lib/beliefs/beliefUpdater';
 
 /**
  * Generate a reflection based on recent memories
@@ -61,13 +62,22 @@ function getRecentObservationMemories(memories: Memory[], maxCount: number): Mem
 }
 
 /**
- * Generate and add a reflection to an agent's memory
+ * Generate and add a reflection to an agent's memory, then update belief system
  */
 export async function addReflectionToAgent(agent: PoliticalAgent, numMemories: number = 5): Promise<Memory> {
   const reflectionText = await generateReflection(agent, numMemories);
   
   // Add the reflection as a new memory
   await agent.addMemory(reflectionText, 'reflection');
+  
+  // Update the agent's belief system based on the reflection
+  console.log(`\nUpdating belief system for ${agent.name} based on reflection...`);
+  agent.beliefSystem = await updateBeliefSystemFromReflection(
+    reflectionText,
+    agent.beliefSystem,
+    agent.name,
+    agent.identity
+  );
   
   // Return the newly created reflection memory
   return agent.memories[agent.memories.length - 1];
