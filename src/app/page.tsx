@@ -1,103 +1,418 @@
-import Image from "next/image";
+// src/app/page.tsx
+'use client';
+
+import { useState } from 'react';
+import { PoliticalAgent } from '@/lib/agents/agent';
+import { ConversationManager, ConversationTurn } from '@/lib/conversation/conversationManager';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [topic, setTopic] = useState('Should the government increase taxes on the wealthy?');
+  const [numTurns, setNumTurns] = useState(6);
+  const [agents, setAgents] = useState<{ liberal: PoliticalAgent | null, conservative: PoliticalAgent | null }>({
+    liberal: null,
+    conservative: null
+  });
+  const [conversationManager, setConversationManager] = useState<ConversationManager | null>(null);
+  const [newTopic, setNewTopic] = useState('');
+  const [showTopicInput, setShowTopicInput] = useState(false);
+  const [conversationTopics, setConversationTopics] = useState<Array<{topic: string, startIndex: number}>>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const startNewConversation = async () => {
+    setIsRunning(true);
+    setConversationHistory([]);
+    setConversationTopics([{topic, startIndex: 0}]); // Track initial topic
+
+    try {
+      // Create two agents with different political beliefs
+      const liberalAgent = new PoliticalAgent(
+        'Alex',
+        'I am a progressive liberal who believes in strong government programs, higher taxes on the wealthy to fund social services, environmental protection, and social justice. I think government should actively work to reduce inequality and provide universal healthcare and education.'
+      );
+
+      const conservativeAgent = new PoliticalAgent(
+        'Jordan',
+        'I am a fiscal conservative who believes in limited government, low taxes, free markets, and personal responsibility. I think government should stay out of people\'s lives and let the free market solve most problems. I value traditional institutions and individual liberty.'
+      );
+
+      // Store agents for memory display
+      setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
+
+      // Create conversation manager
+      const manager = new ConversationManager(liberalAgent, conservativeAgent);
+      setConversationManager(manager);
+
+      // Run the specified number of turns
+      const history = await manager.runConversation(topic, numTurns);
+      setConversationHistory(history);
+    } catch (error) {
+      console.error('Error running conversation:', error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const continueConversation = async () => {
+    if (!conversationManager) {
+      console.error('No conversation manager available');
+      return;
+    }
+
+    setIsRunning(true);
+
+    try {
+      // Continue for the specified number of turns
+      for (let i = 0; i < numTurns; i++) {
+        const newTurn = await conversationManager.continueConversation();
+        setConversationHistory(prev => [...prev, newTurn]);
+      }
+    } catch (error) {
+      console.error('Error continuing conversation:', error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const addSingleTurn = async () => {
+    if (!conversationManager) {
+      console.error('No conversation manager available');
+      return;
+    }
+
+    setIsRunning(true);
+
+    try {
+      const newTurn = await conversationManager.continueConversation();
+      setConversationHistory(prev => [...prev, newTurn]);
+    } catch (error) {
+      console.error('Error adding turn:', error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const injectNewTopic = async () => {
+    if (!conversationManager || !newTopic.trim()) {
+      console.error('No conversation manager available or empty topic');
+      return;
+    }
+
+    setIsRunning(true);
+
+    try {
+      const newTurn = await conversationManager.injectNewTopic(newTopic.trim());
+      setConversationHistory(prev => [...prev, newTurn]);
+      
+      // Track the new topic
+      setConversationTopics(prev => [...prev, {
+        topic: newTopic.trim(), 
+        startIndex: conversationHistory.length
+      }]);
+      
+      setNewTopic('');
+      setShowTopicInput(false);
+    } catch (error) {
+      console.error('Error injecting new topic:', error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const continueWithNewTopic = async () => {
+    if (!conversationManager || !newTopic.trim()) {
+      console.error('No conversation manager available or empty topic');
+      return;
+    }
+
+    setIsRunning(true);
+
+    try {
+      const newTurns = await conversationManager.continueWithNewTopic(newTopic.trim(), numTurns - 1);
+      
+      // Track the new topic at the current conversation length
+      setConversationTopics(prev => [...prev, {
+        topic: newTopic.trim(), 
+        startIndex: conversationHistory.length
+      }]);
+      
+      setConversationHistory(prev => [...prev, ...newTurns]);
+      setNewTopic('');
+      setShowTopicInput(false);
+    } catch (error) {
+      console.error('Error continuing with new topic:', error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <h1 className="text-3xl font-bold text-center mb-8">Political AI Debate</h1>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Debate Topic:
+              </label>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md"
+                disabled={isRunning}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Number of Turns:
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={numTurns}
+                onChange={(e) => setNumTurns(parseInt(e.target.value) || 1)}
+                className="w-full p-3 border border-gray-300 rounded-md"
+                disabled={isRunning}
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-3 mb-4">
+            <button
+              onClick={startNewConversation}
+              disabled={isRunning}
+              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isRunning ? 'Running...' : 'Start New Debate'}
+            </button>
+            
+            {conversationManager && (
+              <>
+                <button
+                  onClick={continueConversation}
+                  disabled={isRunning}
+                  className="flex-1 bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 disabled:opacity-50"
+                >
+                  {isRunning ? 'Running...' : `Continue ${numTurns} Turns`}
+                </button>
+                
+                <button
+                  onClick={addSingleTurn}
+                  disabled={isRunning}
+                  className="bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 disabled:opacity-50"
+                >
+                  +1 Turn
+                </button>
+
+                <button
+                  onClick={() => setShowTopicInput(!showTopicInput)}
+                  disabled={isRunning}
+                  className="bg-purple-600 text-white py-3 px-6 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                >
+                  New Topic
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* New Topic Input Section */}
+          {showTopicInput && (
+            <div className="border-t pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Inject New Topic:
+                  </label>
+                  <input
+                    type="text"
+                    value={newTopic}
+                    onChange={(e) => setNewTopic(e.target.value)}
+                    placeholder="Enter a new topic to discuss..."
+                    className="w-full p-3 border border-gray-300 rounded-md"
+                    disabled={isRunning}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Turns:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={numTurns}
+                    onChange={(e) => setNumTurns(parseInt(e.target.value) || 1)}
+                    className="w-full p-3 border border-gray-300 rounded-md"
+                    disabled={isRunning}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={injectNewTopic}
+                  disabled={isRunning || !newTopic.trim()}
+                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                >
+                  Add Topic Only
+                </button>
+                <button
+                  onClick={continueWithNewTopic}
+                  disabled={isRunning || !newTopic.trim()}
+                  className="flex-1 bg-purple-700 text-white py-2 px-4 rounded-md hover:bg-purple-800 disabled:opacity-50"
+                >
+                  Add Topic + {numTurns} Turns
+                </button>
+                <button
+                  onClick={() => {setShowTopicInput(false); setNewTopic('');}}
+                  disabled={isRunning}
+                  className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {conversationHistory.length > 0 && (
+            <div className="mt-4 text-sm text-gray-600 text-center">
+              Total turns: {conversationHistory.length}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Conversation History */}
+          <div className="lg:col-span-2">
+            <h2 className="text-xl font-bold mb-4">Conversation</h2>
+            <div className="space-y-4">
+              {conversationHistory.map((turn, index) => {
+                // Check if we should show a topic header before this turn
+                const topicForThisTurn = conversationTopics.find(t => t.startIndex === index);
+                
+                return (
+                  <div key={index}>
+                    {/* Show topic header if this turn starts a new topic */}
+                    {topicForThisTurn && (
+                      <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
+                        <h3 className="font-semibold text-yellow-800 mb-2">
+                          {index === 0 ? '📋 Initial Topic:' : '🔄 New Topic:'}
+                        </h3>
+                        <p className="text-yellow-700">{topicForThisTurn.topic}</p>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <div
+                        className={`p-4 rounded-lg ${
+                          turn.agentName === 'Alex'
+                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                            : 'bg-red-100 border-l-4 border-red-500'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="font-semibold text-lg">
+                            {turn.agentName} {turn.agentName === 'Alex' ? '(Liberal)' : '(Conservative)'}
+                          </h3>
+                          <span className="text-sm text-gray-500">
+                            {turn.timestamp.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-800">{turn.message}</p>
+                      </div>
+                      
+                      {/* Show memories used for this response */}
+                      {turn.memoriesUsed && turn.memoriesUsed.length > 0 && (
+                        <div className={`ml-4 p-3 rounded border-l-2 ${
+                          turn.agentName === 'Alex' ? 'bg-blue-50 border-blue-300' : 'bg-red-50 border-red-300'
+                        }`}>
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">
+                            Memories used ({turn.memoriesUsed.length}):
+                          </h4>
+                          <div className="space-y-1">
+                            {turn.memoriesUsed.map((memory) => (
+                              <div key={memory.id} className="text-xs text-gray-600 bg-white p-2 rounded">
+                                <span className={`inline-block px-2 py-1 rounded text-xs mr-2 ${
+                                  memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {memory.type}
+                                </span>
+                                {memory.description}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {conversationHistory.length === 0 && !isRunning && (
+              <div className="text-center text-gray-500 mt-8">
+                Click "Start Debate" to watch two AI agents with different political beliefs discuss a topic.
+              </div>
+            )}
+          </div>
+
+          {/* Agent Memories */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold">Agent Memories</h2>
+            
+            {/* Alex's Memories */}
+            {agents.liberal && (
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-3">Alex's Memories ({agents.liberal.memories.length})</h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {agents.liberal.memories.map((memory, index) => (
+                    <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-blue-300">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {memory.type}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {memory.createdAt.toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700">{memory.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Jordan's Memories */}
+            {agents.conservative && (
+              <div className="bg-red-50 rounded-lg p-4">
+                <h3 className="font-semibold text-red-800 mb-3">Jordan's Memories ({agents.conservative.memories.length})</h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {agents.conservative.memories.map((memory, index) => (
+                    <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-red-300">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {memory.type}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {memory.createdAt.toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700">{memory.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
