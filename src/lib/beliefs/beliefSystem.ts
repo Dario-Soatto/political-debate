@@ -546,7 +546,7 @@ export function findBeliefById<T extends { id: string }>(beliefs: T[], id: strin
   return beliefs.find(belief => belief.id === id);
 }
 
-export function getConnectedBeliefs(beliefSystem: BeliefSystem, beliefId: string): {
+export function getConnectedBeliefs(): {
   coreValues: CoreValue[];
   domainAreas: DomainArea[];
   specificIssues: SpecificIssue[];

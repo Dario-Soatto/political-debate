@@ -379,7 +379,7 @@ export default function Home() {
 
             {conversationHistory.length === 0 && !isRunning && (
               <div className="text-center text-gray-500 mt-8">
-                Click "Start Debate" to watch two AI agents with different political beliefs discuss a topic.
+                Click &quot;Start Debate&quot; to watch two AI agents with different political beliefs discuss a topic.
               </div>
             )}
           </div>
@@ -406,7 +406,7 @@ export default function Home() {
                 <div className="mb-4">
                   <h4 className="font-medium text-blue-700 mb-2">Memories ({agents.liberal.memories.length})</h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {agents.liberal.memories.map((memory, index) => (
+                    {agents.liberal.memories.map((memory) => (
                       <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-blue-300">
                         <div className="flex justify-between items-start mb-1">
                           <span className={`text-xs px-2 py-1 rounded ${
@@ -496,7 +496,7 @@ export default function Home() {
                 <div className="mb-4">
                   <h4 className="font-medium text-red-700 mb-2">Memories ({agents.conservative.memories.length})</h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {agents.conservative.memories.map((memory, index) => (
+                    {agents.conservative.memories.map((memory) => (
                       <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-red-300">
                         <div className="flex justify-between items-start mb-1">
                           <span className={`text-xs px-2 py-1 rounded ${
