@@ -20,7 +20,7 @@ export async function generateAgentResponse(
   const prompt = `You are ${agent.name}, a political agent with the following identity:
 ${agent.identity}
 
-Your core political beliefs:
+Your political beliefs:
 ${beliefContext}
 
 Based on your relevant memories:
@@ -32,7 +32,7 @@ ${conversationContext.recentHistory.join('\n')}
 Current message you're responding to:
 ${conversationContext.currentMessage}
 
-Respond as ${agent.name} would, staying true to your political beliefs and drawing from your memories. Your response should reflect your belief system and be informed by your past experiences. Keep your response conversational and under 200 words.`;
+Respond as ${agent.name} would, staying true to your identity and considering your political beliefs and your memories. Keep your response under 200 words.`;
 
   const response = await fetch('/api/claude', {
     method: 'POST',
@@ -86,12 +86,12 @@ export async function condenseInteraction(
   currentMessage: string,
   response: string
 ): Promise<string> {
-  const prompt = `Condense this conversation exchange into exactly 20 words or less for a memory:
+  const prompt = `Condense this conversation exchange into exactly 40 words or less for a memory:
 
 Other person said: "${currentMessage}"
 I responded: "${response}"
 
-Create a brief memory summary in 20 words or less:`;
+Create a brief memory summary in 40 words or less. This memory is meant to allow you to later reflect on what was said and potentially update your beliefs.`;
 
   const apiResponse = await fetch('/api/claude', {
     method: 'POST',

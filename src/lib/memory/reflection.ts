@@ -28,7 +28,7 @@ ${memoryDescriptions}
 
 Based on these experiences, generate a thoughtful reflection that:
 1. Identifies patterns or themes in your recent interactions
-2. Considers how these experiences relate to your political beliefs
+2. Considers how these experiences relate to and may influenceyour political beliefs
 3. Notes any insights or shifts in your thinking
 4. Is philosophical and abstract (not just a summary)
 5. Is 2-3 sentences maximum

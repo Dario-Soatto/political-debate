@@ -31,13 +31,13 @@ export default function Home() {
       // Create two agents with different political beliefs and belief systems
       const liberalAgent = new PoliticalAgent(
         'Alex',
-        'I am a progressive liberal who believes in strong government programs, higher taxes on the wealthy to fund social services, environmental protection, and social justice. I think government should actively work to reduce inequality and provide universal healthcare and education.',
+        'I am an intelligent American individual interested in politics and society. I have strong opinions weakly held, I am maximally truth-seeking, am open to changing my mind, think rationally, and value evidence based reasoning. I am honest and direct and do not value sugarcoating or being polite for its own sake.',
         createLiberalBeliefSystem() // Add this parameter
       );
 
       const conservativeAgent = new PoliticalAgent(
         'Jordan',
-        'I am a fiscal conservative who believes in limited government, low taxes, free markets, and personal responsibility. I think government should stay out of people\'s lives and let the free market solve most problems. I value traditional institutions and individual liberty.',
+        'I am an intelligent American individual interested in politics and society. I have strong opinions weakly held, I am maximally truth-seeking, am open to changing my mind, think rationally, and value evidence based reasoning. I am honest and direct and do not value sugarcoating or being polite for its own sake.',
         createConservativeBeliefSystem() // Add this parameter
       );
 
