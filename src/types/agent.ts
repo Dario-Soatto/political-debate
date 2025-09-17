@@ -19,6 +19,46 @@ export interface Memory {
 }
 
 /**
+ * Core Value - fundamental beliefs that guide an agent's worldview
+ */
+export interface CoreValue {
+  id: string;
+  label: string;
+  description: string;
+  domainAreaIds: string[];
+}
+
+/**
+ * Domain Area - specific areas of policy/life where core values apply
+ */
+export interface DomainArea {
+  id: string;
+  label: string;
+  description: string;
+  coreValueIds: string[];
+  specificIssueIds: string[];
+}
+
+/**
+ * Specific Issue - concrete topics or policies within domain areas
+ */
+export interface SpecificIssue {
+  id: string;
+  label: string;
+  description: string;
+  domainAreaIds: string[];
+}
+
+/**
+ * Complete belief system for an agent
+ */
+export interface BeliefSystem {
+  coreValues: CoreValue[];
+  domainAreas: DomainArea[];
+  specificIssues: SpecificIssue[];
+}
+
+/**
  * Basic agent structure with identity and memory
  */
 export interface Agent {
@@ -28,6 +68,7 @@ export interface Agent {
   identity: string;
   // The agent's memory stream
   memories: Memory[];
+  beliefSystem: BeliefSystem; // Add this line
 }
 
 /**

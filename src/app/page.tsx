@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { PoliticalAgent } from '@/lib/agents/agent';
 import { ConversationManager, ConversationTurn } from '@/lib/conversation/conversationManager';
+import { createLiberalBeliefSystem, createConservativeBeliefSystem } from '@/lib/beliefs/beliefSystem';
 
 export default function Home() {
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
@@ -25,15 +26,17 @@ export default function Home() {
     setConversationTopics([{topic, startIndex: 0}]); // Track initial topic
 
     try {
-      // Create two agents with different political beliefs
+      // Create two agents with different political beliefs and belief systems
       const liberalAgent = new PoliticalAgent(
         'Alex',
-        'I am a progressive liberal who believes in strong government programs, higher taxes on the wealthy to fund social services, environmental protection, and social justice. I think government should actively work to reduce inequality and provide universal healthcare and education.'
+        'I am a progressive liberal who believes in strong government programs, higher taxes on the wealthy to fund social services, environmental protection, and social justice. I think government should actively work to reduce inequality and provide universal healthcare and education.',
+        createLiberalBeliefSystem() // Add this parameter
       );
 
       const conservativeAgent = new PoliticalAgent(
         'Jordan',
-        'I am a fiscal conservative who believes in limited government, low taxes, free markets, and personal responsibility. I think government should stay out of people\'s lives and let the free market solve most problems. I value traditional institutions and individual liberty.'
+        'I am a fiscal conservative who believes in limited government, low taxes, free markets, and personal responsibility. I think government should stay out of people\'s lives and let the free market solve most problems. I value traditional institutions and individual liberty.',
+        createConservativeBeliefSystem() // Add this parameter
       );
 
       // Store agents for memory display
@@ -359,54 +362,168 @@ export default function Home() {
             )}
           </div>
 
-          {/* Agent Memories */}
+          {/* Agent Memories and Beliefs */}
           <div className="space-y-6">
-            <h2 className="text-xl font-bold">Agent Memories</h2>
+            <h2 className="text-xl font-bold">Agent Memories & Beliefs</h2>
             
-            {/* Alex's Memories */}
+            {/* Alex's Memories and Beliefs */}
             {agents.liberal && (
               <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-800 mb-3">Alex's Memories ({agents.liberal.memories.length})</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {agents.liberal.memories.map((memory, index) => (
-                    <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-blue-300">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {memory.type}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {memory.createdAt.toLocaleTimeString()}
-                        </span>
+                <h3 className="font-semibold text-blue-800 mb-3">Alex (Liberal)</h3>
+                
+                {/* Memories Section */}
+                <div className="mb-4">
+                  <h4 className="font-medium text-blue-700 mb-2">Memories ({agents.liberal.memories.length})</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {agents.liberal.memories.map((memory, index) => (
+                      <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-blue-300">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {memory.type}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {memory.createdAt.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{memory.description}</p>
                       </div>
-                      <p className="text-sm text-gray-700">{memory.description}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                </div>
+
+                {/* Beliefs Section */}
+                <div>
+                  <h4 className="font-medium text-blue-700 mb-2">Belief System</h4>
+                  <div className="space-y-3">
+                    
+                    {/* Core Values */}
+                    <details className="bg-white rounded border">
+                      <summary className="p-3 cursor-pointer font-medium text-blue-800 hover:bg-blue-50">
+                        Core Values ({agents.liberal.beliefSystem.coreValues.length})
+                      </summary>
+                      <div className="px-3 pb-3 space-y-2">
+                        {agents.liberal.beliefSystem.coreValues.map((value) => (
+                          <div key={value.id} className="border-l-2 border-blue-200 pl-3">
+                            <h5 className="font-medium text-sm text-blue-900">{value.label}</h5>
+                            <p className="text-xs text-gray-600">{value.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+
+                    {/* Domain Areas */}
+                    <details className="bg-white rounded border">
+                      <summary className="p-3 cursor-pointer font-medium text-blue-800 hover:bg-blue-50">
+                        Policy Domains ({agents.liberal.beliefSystem.domainAreas.length})
+                      </summary>
+                      <div className="px-3 pb-3 space-y-2">
+                        {agents.liberal.beliefSystem.domainAreas.map((domain) => (
+                          <div key={domain.id} className="border-l-2 border-blue-300 pl-3">
+                            <h5 className="font-medium text-sm text-blue-900">{domain.label}</h5>
+                            <p className="text-xs text-gray-600">{domain.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+
+                    {/* Specific Issues */}
+                    <details className="bg-white rounded border">
+                      <summary className="p-3 cursor-pointer font-medium text-blue-800 hover:bg-blue-50">
+                        Specific Issues ({agents.liberal.beliefSystem.specificIssues.length})
+                      </summary>
+                      <div className="px-3 pb-3 space-y-2 max-h-64 overflow-y-auto">
+                        {agents.liberal.beliefSystem.specificIssues.map((issue) => (
+                          <div key={issue.id} className="border-l-2 border-blue-400 pl-3">
+                            <h5 className="font-medium text-sm text-blue-900">{issue.label}</h5>
+                            <p className="text-xs text-gray-600">{issue.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Jordan's Memories */}
+            {/* Jordan's Memories and Beliefs */}
             {agents.conservative && (
               <div className="bg-red-50 rounded-lg p-4">
-                <h3 className="font-semibold text-red-800 mb-3">Jordan's Memories ({agents.conservative.memories.length})</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {agents.conservative.memories.map((memory, index) => (
-                    <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-red-300">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {memory.type}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {memory.createdAt.toLocaleTimeString()}
-                        </span>
+                <h3 className="font-semibold text-red-800 mb-3">Jordan (Conservative)</h3>
+                
+                {/* Memories Section */}
+                <div className="mb-4">
+                  <h4 className="font-medium text-red-700 mb-2">Memories ({agents.conservative.memories.length})</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {agents.conservative.memories.map((memory, index) => (
+                      <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-red-300">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {memory.type}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {memory.createdAt.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{memory.description}</p>
                       </div>
-                      <p className="text-sm text-gray-700">{memory.description}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                </div>
+
+                {/* Beliefs Section */}
+                <div>
+                  <h4 className="font-medium text-red-700 mb-2">Belief System</h4>
+                  <div className="space-y-3">
+                    
+                    {/* Core Values */}
+                    <details className="bg-white rounded border">
+                      <summary className="p-3 cursor-pointer font-medium text-red-800 hover:bg-red-50">
+                        Core Values ({agents.conservative.beliefSystem.coreValues.length})
+                      </summary>
+                      <div className="px-3 pb-3 space-y-2">
+                        {agents.conservative.beliefSystem.coreValues.map((value) => (
+                          <div key={value.id} className="border-l-2 border-red-200 pl-3">
+                            <h5 className="font-medium text-sm text-red-900">{value.label}</h5>
+                            <p className="text-xs text-gray-600">{value.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+
+                    {/* Domain Areas */}
+                    <details className="bg-white rounded border">
+                      <summary className="p-3 cursor-pointer font-medium text-red-800 hover:bg-red-50">
+                        Policy Domains ({agents.conservative.beliefSystem.domainAreas.length})
+                      </summary>
+                      <div className="px-3 pb-3 space-y-2">
+                        {agents.conservative.beliefSystem.domainAreas.map((domain) => (
+                          <div key={domain.id} className="border-l-2 border-red-300 pl-3">
+                            <h5 className="font-medium text-sm text-red-900">{domain.label}</h5>
+                            <p className="text-xs text-gray-600">{domain.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+
+                    {/* Specific Issues */}
+                    <details className="bg-white rounded border">
+                      <summary className="p-3 cursor-pointer font-medium text-red-800 hover:bg-red-50">
+                        Specific Issues ({agents.conservative.beliefSystem.specificIssues.length})
+                      </summary>
+                      <div className="px-3 pb-3 space-y-2 max-h-64 overflow-y-auto">
+                        {agents.conservative.beliefSystem.specificIssues.map((issue) => (
+                          <div key={issue.id} className="border-l-2 border-red-400 pl-3">
+                            <h5 className="font-medium text-sm text-red-900">{issue.label}</h5>
+                            <p className="text-xs text-gray-600">{issue.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
                 </div>
               </div>
             )}

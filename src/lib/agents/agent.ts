@@ -1,5 +1,5 @@
 // src/lib/agents/agent.ts
-import { Agent, Memory, ConversationContext, MemoryType } from '@/types/agent';
+import { Agent, Memory, ConversationContext, MemoryType, BeliefSystem } from '@/types/agent';
 import { createMemoryWithEmbedding } from '@/lib/memory/memoryStore';
 import { retrieveRelevantMemories } from '@/lib/retrieval/memoryRetrieval';
 import { generateAgentResponse, condenseInteraction } from './claude';
@@ -13,12 +13,14 @@ export class PoliticalAgent implements Agent {
   name: string;
   identity: string;
   memories: Memory[];
+  beliefSystem: BeliefSystem;
 
-  constructor(name: string, identity: string) {
+  constructor(name: string, identity: string, beliefSystem: BeliefSystem) {
     this.id = crypto.randomUUID();
     this.name = name;
     this.identity = identity;
     this.memories = [];
+    this.beliefSystem = beliefSystem;
   }
 
   async addMemory(description: string, type: MemoryType): Promise<void> {
