@@ -339,7 +339,7 @@ export default function Home() {
                         }`}
                       >
                         <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="font-semibold text-lg text-black">
                             {turn.agentName} {turn.agentName === 'Alex' ? '(Liberal)' : '(Conservative)'}
                           </h3>
                           <span className="text-sm text-gray-500">
