@@ -2,6 +2,8 @@
 import { PoliticalAgent } from '@/lib/agents/agent';
 import { Memory } from '@/types/agent';
 import { updateBeliefSystemFromReflection } from '@/lib/beliefs/beliefUpdater';
+import { updateAgentBeliefSystem } from '@/lib/database/agents';
+import { BeliefSystem } from '@/types/agent'
 
 /**
  * Generate a reflection based on recent memories
@@ -78,6 +80,10 @@ export async function addReflectionToAgent(agent: PoliticalAgent, numMemories: n
     agent.name,
     agent.identity
   );
+  
+  // Save updated belief system to database
+  await updateAgentBeliefSystem(agent.id, agent.beliefSystem);
+  console.log('✓ Belief system saved to database');
   
   // Return the newly created reflection memory
   return agent.memories[agent.memories.length - 1];

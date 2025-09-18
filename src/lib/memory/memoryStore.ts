@@ -1,6 +1,7 @@
 // src/lib/memory/memoryStore.ts
 import { Memory, MemoryType } from '@/types/agent';
 import { getEmbedding } from '@/lib/retrieval/embeddings';
+import { saveMemory } from '@/lib/database/memories';
 
 /**
  * Basic memory storage functions
@@ -50,16 +51,20 @@ export function getMemoriesWithRecencyScores(memories: Memory[]): Array<{memory:
 }
 
 /**
- * Create a memory with embedding (async version)
+ * Create a memory with embedding and save to database
  */
-export async function createMemoryWithEmbedding(
+export async function createMemoryWithEmbeddingAndSave(
   description: string, 
-  type: MemoryType
+  type: MemoryType,
+  agentId: string
 ): Promise<Memory> {
   const embedding = await getEmbedding(description);
   
+  // Save to database
+  const memoryId = await saveMemory(agentId, description, type, embedding);
+  
   return {
-    id: crypto.randomUUID(),
+    id: memoryId,
     description,
     type,
     createdAt: new Date(),

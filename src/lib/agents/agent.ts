@@ -1,8 +1,9 @@
 // src/lib/agents/agent.ts
 import { Agent, Memory, ConversationContext, MemoryType, BeliefSystem } from '@/types/agent';
-import { createMemoryWithEmbedding } from '@/lib/memory/memoryStore';
+import { createMemoryWithEmbeddingAndSave } from '@/lib/memory/memoryStore';
 import { retrieveRelevantMemories } from '@/lib/retrieval/memoryRetrieval';
 import { generateAgentResponse, condenseInteraction } from './claude';
+import { loadMemoriesForAgent, updateMemoryAccess } from '@/lib/database/memories';
 
 /**
  * Basic Agent class implementation
@@ -24,12 +25,28 @@ export class PoliticalAgent implements Agent {
   }
 
   async addMemory(description: string, type: MemoryType): Promise<void> {
-    const memory = await createMemoryWithEmbedding(description, type);
+    const memory = await createMemoryWithEmbeddingAndSave(description, type, this.id);
     this.memories.push(memory);
   }
 
+  async loadMemoriesFromDatabase(): Promise<void> {
+    try {
+      this.memories = await loadMemoriesForAgent(this.id);
+      console.log(`Loaded ${this.memories.length} memories for ${this.name}`);
+    } catch (error) {
+      console.error(`Failed to load memories for ${this.name}:`, error);
+    }
+  }
+
   async getRelevantMemories(context: ConversationContext): Promise<Memory[]> {
-    return await retrieveRelevantMemories(this.memories, context);
+    const relevantMemories = await retrieveRelevantMemories(this.memories, context);
+    
+    // Update last accessed timestamps in database
+    for (const memory of relevantMemories) {
+      await updateMemoryAccess(memory.id);
+    }
+    
+    return relevantMemories;
   }
 
   /**

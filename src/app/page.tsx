@@ -7,6 +7,9 @@ import { ConversationManager, ConversationTurn } from '@/lib/conversation/conver
 import { createLiberalBeliefSystem, createConservativeBeliefSystem } from '@/lib/beliefs/beliefSystem';
 import { addReflectionToAgent } from '@/lib/memory/reflection';
 import { saveAgent } from '@/lib/database/agents';
+import { saveConversation, saveConversationTurn, loadConversation as loadConversationFromDB } from '@/lib/database/conversations';
+import { supabase } from '@/lib/database/supabase';
+import { loadAgentWithMemories } from '@/lib/database/agents';
 
 export default function Home() {
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
@@ -23,6 +26,14 @@ export default function Home() {
   const [conversationTopics, setConversationTopics] = useState<Array<{topic: string, startIndex: number}>>([]);
   const [isGeneratingReflection, setIsGeneratingReflection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [savedConversations, setSavedConversations] = useState<Array<{
+    id: string,
+    initial_topic: string,
+    created_at: string,
+    agent_names: string[]
+  }>>([]);
+  const [showConversationBrowser, setShowConversationBrowser] = useState(false);
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -50,21 +61,38 @@ export default function Home() {
       const manager = new ConversationManager(liberalAgent, conservativeAgent);
       setConversationManager(manager);
 
+      // Save agents first
+      const liberalId = await saveAgent(liberalAgent);
+      const conservativeId = await saveAgent(conservativeAgent);
+      console.log('Agents saved:', { liberalId, conservativeId });
+
+      // Save conversation to database
+      const conversationId = await saveConversation(topic, liberalId, conservativeId);
+      setCurrentConversationId(conversationId);
+      console.log('Conversation created:', conversationId);
+
       // Start the conversation and display first turn immediately
       const firstTurn = await manager.startConversation(topic);
       setConversationHistory([firstTurn]);
+      
+      // Save first turn to database
+      await saveConversationTurn(conversationId, liberalId, firstTurn.message, 0);
 
       // Continue with remaining turns, displaying each one as it's generated
       for (let i = 1; i < numTurns; i++) {
         const turn = await manager.continueConversation();
         setConversationHistory(prev => [...prev, turn]);
+        
+        // Save each turn to database
+        const agentId = turn.agentName === 'Alex' ? liberalId : conservativeId;
+        await saveConversationTurn(conversationId, agentId, turn.message, i);
       }
     } catch (error) {
       console.error('Error running conversation:', error);
     } finally {
       setIsRunning(false);
     }
-  };
+  };  
 
   const continueConversation = async () => {
     if (!conversationManager) {
@@ -197,6 +225,94 @@ export default function Home() {
       alert('Failed to save agents');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const loadSavedConversations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          initial_topic,
+          created_at,
+          agent1:agents!agent1_id(name),
+          agent2:agents!agent2_id(name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        throw new Error(`Failed to load conversations: ${error.message}`);
+      }
+
+      const conversations = data.map(conv => ({
+        id: conv.id,
+        initial_topic: conv.initial_topic,
+        created_at: conv.created_at,
+        agent_names: [(conv.agent1 as any)?.name || 'Unknown', (conv.agent2 as any)?.name || 'Unknown']
+      }));
+
+      setSavedConversations(conversations);
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      setIsRunning(true);
+      
+      // Load conversation data
+      const conversationData = await loadConversationFromDB(conversationId);
+      if (!conversationData) {
+        alert('Failed to load conversation');
+        return;
+      }
+
+      // Load the agents
+      const { data: convMeta } = await supabase
+        .from('conversations')
+        .select('agent1_id, agent2_id, initial_topic')
+        .eq('id', conversationId)
+        .single();
+
+      if (!convMeta) {
+        alert('Failed to load conversation metadata');
+        return;
+      }
+
+      const liberalAgent = await loadAgentWithMemories(convMeta.agent1_id);
+      const conservativeAgent = await loadAgentWithMemories(convMeta.agent2_id);
+
+      if (!liberalAgent || !conservativeAgent) {
+        alert('Failed to load agents');
+        return;
+      }
+
+      // Set up the UI
+      setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
+      setConversationManager(new ConversationManager(liberalAgent, conservativeAgent));
+      setCurrentConversationId(conversationId);
+      
+      // Convert database turns to UI format
+      const uiTurns = conversationData.turns.map(turn => ({
+        agentName: turn.agent_name,
+        message: turn.message,
+        timestamp: new Date(turn.created_at),
+        memoriesUsed: [] // We don't store which memories were used, so empty array
+      }));
+
+      setConversationHistory(uiTurns);
+      setConversationTopics([{ topic: convMeta.initial_topic, startIndex: 0 }]);
+      setShowConversationBrowser(false);
+
+      console.log(`Loaded conversation with ${uiTurns.length} turns`);
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+      alert('Failed to load conversation');
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -606,6 +722,56 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              setShowConversationBrowser(true);
+              loadSavedConversations();
+            }}
+            disabled={isRunning}
+            className="bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 disabled:opacity-50"
+          >
+            Load Conversation
+          </button>
+        </div>
+
+        {/* Conversation Browser Modal */}
+        {showConversationBrowser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+              <h3 className="text-lg font-bold mb-4">Load Previous Conversation</h3>
+              
+              {savedConversations.length === 0 ? (
+                <p className="text-gray-500">No saved conversations found.</p>
+              ) : (
+                <div className="space-y-2">
+                  {savedConversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => loadConversation(conv.id)}
+                    >
+                      <div className="font-medium">{conv.initial_topic}</div>
+                      <div className="text-sm text-gray-600">
+                        {conv.agent_names.join(' vs ')} • {new Date(conv.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowConversationBrowser(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
