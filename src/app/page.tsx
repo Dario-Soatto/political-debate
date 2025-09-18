@@ -6,6 +6,7 @@ import { PoliticalAgent } from '@/lib/agents/agent';
 import { ConversationManager, ConversationTurn } from '@/lib/conversation/conversationManager';
 import { createLiberalBeliefSystem, createConservativeBeliefSystem } from '@/lib/beliefs/beliefSystem';
 import { addReflectionToAgent } from '@/lib/memory/reflection';
+import { saveAgent } from '@/lib/database/agents';
 
 export default function Home() {
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
@@ -21,6 +22,7 @@ export default function Home() {
   const [showTopicInput, setShowTopicInput] = useState(false);
   const [conversationTopics, setConversationTopics] = useState<Array<{topic: string, startIndex: number}>>([]);
   const [isGeneratingReflection, setIsGeneratingReflection] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -48,9 +50,15 @@ export default function Home() {
       const manager = new ConversationManager(liberalAgent, conservativeAgent);
       setConversationManager(manager);
 
-      // Run the specified number of turns
-      const history = await manager.runConversation(topic, numTurns);
-      setConversationHistory(history);
+      // Start the conversation and display first turn immediately
+      const firstTurn = await manager.startConversation(topic);
+      setConversationHistory([firstTurn]);
+
+      // Continue with remaining turns, displaying each one as it's generated
+      for (let i = 1; i < numTurns; i++) {
+        const turn = await manager.continueConversation();
+        setConversationHistory(prev => [...prev, turn]);
+      }
     } catch (error) {
       console.error('Error running conversation:', error);
     } finally {
@@ -171,6 +179,27 @@ export default function Home() {
     }
   };
 
+  const saveAgentsToDatabase = async () => {
+    if (!agents.liberal || !agents.conservative) {
+      console.error('No agents to save');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const liberalId = await saveAgent(agents.liberal);
+      const conservativeId = await saveAgent(agents.conservative);
+      
+      console.log('Agents saved successfully:', { liberalId, conservativeId });
+      alert('Agents saved to database!');
+    } catch (error) {
+      console.error('Failed to save agents:', error);
+      alert('Failed to save agents');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -239,6 +268,14 @@ export default function Home() {
                   className="bg-purple-600 text-white py-3 px-6 rounded-md hover:bg-purple-700 disabled:opacity-50"
                 >
                   New Topic
+                </button>
+
+                <button
+                  onClick={saveAgentsToDatabase}
+                  disabled={isRunning || isSaving}
+                  className="bg-indigo-600 text-white py-3 px-6 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {isSaving ? 'Saving...' : 'Save Agents'}
                 </button>
               </>
             )}
