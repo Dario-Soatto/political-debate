@@ -33,6 +33,7 @@ export default function Home() {
     agent_names: string[]
   }>>([]);
   const [showConversationBrowser, setShowConversationBrowser] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -67,6 +68,7 @@ export default function Home() {
 
       // Save conversation to database
       const conversationId = await saveConversation(topic, liberalId, conservativeId);
+      setCurrentConversationId(conversationId); // Add this back
       console.log('Conversation created:', conversationId);
 
       // Start the conversation and display first turn immediately
@@ -101,10 +103,17 @@ export default function Home() {
     setIsRunning(true);
 
     try {
-      // Continue for the specified number of turns
+      // Continue for the specified number of turns, displaying each one as it's generated
       for (let i = 0; i < numTurns; i++) {
         const newTurn = await conversationManager.continueConversation();
         setConversationHistory(prev => [...prev, newTurn]);
+        
+        // Save turn to database if we have a conversation ID
+        if (currentConversationId && agents.liberal && agents.conservative) {
+          const agentId = newTurn.agentName === 'Alex' ? agents.liberal.id : agents.conservative.id;
+          const currentTurnCount = conversationHistory.length + i;
+          await saveConversationTurn(currentConversationId, agentId, newTurn.message, currentTurnCount);
+        }
       }
     } catch (error) {
       console.error('Error continuing conversation:', error);
@@ -124,6 +133,12 @@ export default function Home() {
     try {
       const newTurn = await conversationManager.continueConversation();
       setConversationHistory(prev => [...prev, newTurn]);
+      
+      // Save turn to database if we have a conversation ID
+      if (currentConversationId && agents.liberal && agents.conservative) {
+        const agentId = newTurn.agentName === 'Alex' ? agents.liberal.id : agents.conservative.id;
+        await saveConversationTurn(currentConversationId, agentId, newTurn.message, conversationHistory.length);
+      }
     } catch (error) {
       console.error('Error adding turn:', error);
     } finally {
@@ -176,6 +191,17 @@ export default function Home() {
       }]);
       
       setConversationHistory(prev => [...prev, ...newTurns]);
+      
+      // Save all new turns to database
+      if (currentConversationId && agents.liberal && agents.conservative) {
+        for (let i = 0; i < newTurns.length; i++) {
+          const turn = newTurns[i];
+          const agentId = turn.agentName === 'Alex' ? agents.liberal.id : agents.conservative.id;
+          const turnIndex = conversationHistory.length + i;
+          await saveConversationTurn(currentConversationId, agentId, turn.message, turnIndex);
+        }
+      }
+      
       setNewTopic('');
       setShowTopicInput(false);
     } catch (error) {
@@ -306,6 +332,7 @@ export default function Home() {
       // Set up the UI
       setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
       setConversationManager(manager);
+      setCurrentConversationId(conversationId); // Add this line
       setConversationHistory(uiTurns);
       setConversationTopics([{ topic: convMeta.initial_topic, startIndex: 0 }]);
       setShowConversationBrowser(false);
