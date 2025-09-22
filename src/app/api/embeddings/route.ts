@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
       input: text,
     });
     
+    console.log('Cosine similarity called:');
+    console.log('Vector A length:', response.data[0].embedding?.length, 'Type:', typeof response.data[0].embedding, 'First few values:', response.data[0].embedding?.slice(0, 3));
+    
     return NextResponse.json({ embedding: response.data[0].embedding });
   } catch (error) {
     console.error('Embedding error:', error);

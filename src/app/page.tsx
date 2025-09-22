@@ -290,11 +290,6 @@ export default function Home() {
         return;
       }
 
-      // Set up the UI
-      setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
-      setConversationManager(new ConversationManager(liberalAgent, conservativeAgent));
-      setCurrentConversationId(conversationId);
-      
       // Convert database turns to UI format
       const uiTurns = conversationData.turns.map(turn => ({
         agentName: turn.agent_name,
@@ -303,6 +298,14 @@ export default function Home() {
         memoriesUsed: [] // We don't store which memories were used, so empty array
       }));
 
+      // Set up the conversation manager and populate its history
+      const manager = new ConversationManager(liberalAgent, conservativeAgent);
+      manager.populateConversationHistory(uiTurns);
+
+      // Set up the UI
+      setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
+      setConversationManager(manager);
+      setCurrentConversationId(conversationId);
       setConversationHistory(uiTurns);
       setConversationTopics([{ topic: convMeta.initial_topic, startIndex: 0 }]);
       setShowConversationBrowser(false);

@@ -152,4 +152,12 @@ export class ConversationManager {
 
     return newTurns;
   }
+
+  /**
+   * Populate conversation history from loaded data
+   */
+  populateConversationHistory(turns: ConversationTurn[]): void {
+    this.conversationHistory = [...turns];
+    console.log(`Populated conversation history with ${turns.length} turns`);
+  }
 }

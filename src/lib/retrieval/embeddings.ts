@@ -23,7 +23,20 @@ export async function getEmbedding(text: string): Promise<number[]> {
  * Calculate cosine similarity between two vectors
  */
 export function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  // Add detailed logging
+  console.log('=== COSINE SIMILARITY DEBUG ===');
+  console.log('Vector A length:', vecA?.length);
+  console.log('Vector A type:', typeof vecA);
+  console.log('Vector A first 3 values:', vecA?.slice(0, 3));
+  console.log('Vector B length:', vecB?.length);
+  console.log('Vector B type:', typeof vecB);
+  console.log('Vector B first 3 values:', vecB?.slice(0, 3));
+  console.log('Are they arrays?', Array.isArray(vecA), Array.isArray(vecB));
+  
   if (vecA.length !== vecB.length) {
+    console.error('❌ LENGTH MISMATCH!');
+    console.error(`Vector A: ${vecA.length} dimensions`);
+    console.error(`Vector B: ${vecB.length} dimensions`);
     throw new Error('Vectors must have the same length');
   }
   
@@ -37,7 +50,11 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
     normB += vecB[i] * vecB[i];
   }
   
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  const similarity = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  console.log('✅ Cosine similarity calculated:', similarity);
+  console.log('================================');
+  
+  return similarity;
 }
 
 /**

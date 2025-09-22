@@ -42,14 +42,38 @@ export async function loadMemoriesForAgent(agentId: string): Promise<Memory[]> {
     throw new Error(`Failed to load memories: ${error.message}`)
   }
 
-  return data.map(row => ({
-    id: row.id,
-    description: row.description,
-    type: row.type as MemoryType,
-    createdAt: new Date(row.created_at),
-    lastAccessedAt: new Date(row.last_accessed_at),
-    embedding: row.embedding || undefined
-  }))
+  return data.map(row => {
+    let embedding = undefined;
+    
+    if (row.embedding) {
+      // Handle different embedding formats from database
+      if (typeof row.embedding === 'string') {
+        console.log('Parsing string embedding...');
+        try {
+          embedding = JSON.parse(row.embedding);
+        } catch (e) {
+          console.error('Failed to parse embedding string:', e);
+          embedding = undefined;
+        }
+      } else if (Array.isArray(row.embedding)) {
+        embedding = row.embedding;
+      } else {
+        console.warn('Unknown embedding format:', typeof row.embedding);
+        embedding = undefined;
+      }
+    }
+    
+    console.log('Processed embedding length:', embedding?.length);
+    
+    return {
+      id: row.id,
+      description: row.description,
+      type: row.type as MemoryType,
+      createdAt: new Date(row.created_at),
+      lastAccessedAt: new Date(row.last_accessed_at),
+      embedding
+    };
+  })
 }
 
 export async function updateMemoryAccess(memoryId: string): Promise<void> {
