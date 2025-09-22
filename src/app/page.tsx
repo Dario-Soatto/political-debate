@@ -254,6 +254,10 @@ export default function Home() {
 
   const loadSavedConversations = async () => {
     try {
+      if (!supabase) {
+        throw new Error('Supabase not configured');
+      }
+
       const { data, error } = await supabase
         .from('conversations')
         .select(`
@@ -298,6 +302,10 @@ export default function Home() {
       }
 
       // Load the agents
+      if (!supabase) {
+        throw new Error('Supabase not configured');
+      }
+
       const { data: convMeta } = await supabase
         .from('conversations')
         .select('agent1_id, agent2_id, initial_topic')

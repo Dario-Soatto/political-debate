@@ -14,6 +14,9 @@ export interface DatabaseAgent {
 
 // Update src/lib/database/agents.ts
 export async function saveAgent(agent: PoliticalAgent): Promise<string> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   console.log('Attempting to save agent:', agent.name, agent.id)
   
   try {
@@ -43,6 +46,9 @@ export async function saveAgent(agent: PoliticalAgent): Promise<string> {
 }
 
 export async function loadAgent(agentId: string): Promise<PoliticalAgent | null> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { data, error } = await supabase
     .from('agents')
     .select('*')
@@ -60,6 +66,9 @@ export async function loadAgent(agentId: string): Promise<PoliticalAgent | null>
 }
 
 export async function loadAgentWithMemories(agentId: string): Promise<PoliticalAgent | null> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { data, error } = await supabase
     .from('agents')
     .select('*')
@@ -81,6 +90,9 @@ export async function loadAgentWithMemories(agentId: string): Promise<PoliticalA
 }
 
 export async function getAllAgents(): Promise<DatabaseAgent[]> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { data, error } = await supabase
     .from('agents')
     .select('*')
@@ -95,6 +107,9 @@ export async function getAllAgents(): Promise<DatabaseAgent[]> {
 
 // Update src/lib/database/agents.ts - add belief system update function
 export async function updateAgentBeliefSystem(agentId: string, beliefSystem: BeliefSystem): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   console.log('Updating belief system for agent:', agentId)
   
   const { error } = await supabase

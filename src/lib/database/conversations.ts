@@ -6,6 +6,9 @@ export async function saveConversation(
   agent1Id: string,
   agent2Id: string
 ): Promise<string> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { data, error } = await supabase
     .from('conversations')
     .insert({
@@ -29,6 +32,9 @@ export async function saveConversationTurn(
   message: string,
   turnOrder: number
 ): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { error } = await supabase
     .from('conversation_turns')
     .insert({
@@ -44,6 +50,9 @@ export async function saveConversationTurn(
 }
 
 export async function loadConversation(conversationId: string) {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { data: conversation, error: convError } = await supabase
     .from('conversations')
     .select('*')

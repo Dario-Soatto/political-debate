@@ -8,6 +8,9 @@ export async function saveMemory(
   type: MemoryType,
   embedding?: number[]
 ): Promise<string> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   console.log('Saving memory for agent:', agentId, type)
 
   const { data, error } = await supabase
@@ -30,6 +33,9 @@ export async function saveMemory(
 }
 
 export async function loadMemoriesForAgent(agentId: string): Promise<Memory[]> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   console.log('Loading memories for agent:', agentId)
 
   const { data, error } = await supabase
@@ -77,6 +83,9 @@ export async function loadMemoriesForAgent(agentId: string): Promise<Memory[]> {
 }
 
 export async function updateMemoryAccess(memoryId: string): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
   const { error } = await supabase
     .from('memories')
     .update({ last_accessed_at: new Date().toISOString() })
