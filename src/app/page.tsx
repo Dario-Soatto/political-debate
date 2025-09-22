@@ -34,11 +34,13 @@ export default function Home() {
     agent_names: string[]
   }>>([]);
   const [showConversationBrowser, setShowConversationBrowser] = useState(false);
+  const [isNewConversation, setIsNewConversation] = useState(false);
 
   const startNewConversation = async () => {
     setIsRunning(true);
     setConversationHistory([]);
     setConversationTopics([{topic, startIndex: 0}]); // Track initial topic
+    setIsNewConversation(true); // Mark as new conversation
 
     try {
       // Create two agents with different political beliefs and belief systems
@@ -207,27 +209,6 @@ export default function Home() {
     }
   };
 
-  const saveAgentsToDatabase = async () => {
-    if (!agents.liberal || !agents.conservative) {
-      console.error('No agents to save');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const liberalId = await saveAgent(agents.liberal);
-      const conservativeId = await saveAgent(agents.conservative);
-      
-      console.log('Agents saved successfully:', { liberalId, conservativeId });
-      alert('Agents saved to database!');
-    } catch (error) {
-      console.error('Failed to save agents:', error);
-      alert('Failed to save agents');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const loadSavedConversations = async () => {
     try {
       const { data, error } = await supabase
@@ -262,6 +243,7 @@ export default function Home() {
   const loadConversation = async (conversationId: string) => {
     try {
       setIsRunning(true);
+      setIsNewConversation(false); // Mark as loaded conversation
       
       // Load conversation data
       const conversationData = await loadConversationFromDB(conversationId);
@@ -292,22 +274,30 @@ export default function Home() {
 
       // Set up the UI
       setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
-      setConversationManager(new ConversationManager(liberalAgent, conservativeAgent));
-      setCurrentConversationId(conversationId);
       
-      // Convert database turns to UI format
-      const uiTurns = conversationData.turns.map(turn => ({
+      // Create conversation manager and populate it with the loaded history
+      const manager = new ConversationManager(liberalAgent, conservativeAgent);
+      
+      // Convert database turns to ConversationTurn format and add to manager's history
+      const managerTurns = conversationData.turns.map(turn => ({
         agentName: turn.agent_name,
         message: turn.message,
         timestamp: new Date(turn.created_at),
-        memoriesUsed: [] // We don't store which memories were used, so empty array
+        memoriesUsed: [] // We don't store which memories were used
       }));
-
-      setConversationHistory(uiTurns);
+      
+      // Manually set the conversation manager's history (we need to access the private property)
+      (manager as any).conversationHistory = managerTurns;
+      
+      setConversationManager(manager);
+      setCurrentConversationId(conversationId);
+      
+      // Convert for UI display
+      setConversationHistory(managerTurns);
       setConversationTopics([{ topic: convMeta.initial_topic, startIndex: 0 }]);
       setShowConversationBrowser(false);
 
-      console.log(`Loaded conversation with ${uiTurns.length} turns`);
+      console.log(`Loaded conversation with ${managerTurns.length} turns`);
     } catch (error) {
       console.error('Failed to load conversation:', error);
       alert('Failed to load conversation');
@@ -360,7 +350,19 @@ export default function Home() {
               {isRunning ? 'Running...' : 'Start New Debate'}
             </button>
             
-            {conversationManager && (
+            <button
+              onClick={() => {
+                setShowConversationBrowser(true);
+                loadSavedConversations();
+              }}
+              disabled={isRunning}
+              className="bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 disabled:opacity-50"
+            >
+              Load Conversation
+            </button>
+
+            {/* Only show these buttons if there's an active conversation (not just loaded agents) */}
+            {conversationManager && conversationHistory.length > 0 && isNewConversation && (
               <>
                 <button
                   onClick={continueConversation}
@@ -384,14 +386,6 @@ export default function Home() {
                   className="bg-purple-600 text-white py-3 px-6 rounded-md hover:bg-purple-700 disabled:opacity-50"
                 >
                   New Topic
-                </button>
-
-                <button
-                  onClick={saveAgentsToDatabase}
-                  disabled={isRunning || isSaving}
-                  className="bg-indigo-600 text-white py-3 px-6 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {isSaving ? 'Saving...' : 'Save Agents'}
                 </button>
               </>
             )}
@@ -723,24 +717,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setShowConversationBrowser(true);
-              loadSavedConversations();
-            }}
-            disabled={isRunning}
-            className="bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 disabled:opacity-50"
-          >
-            Load Conversation
-          </button>
-        </div>
-
         {/* Conversation Browser Modal */}
         {showConversationBrowser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-              <h3 className="text-lg font-bold mb-4">Load Previous Conversation</h3>
+              <h3 className="text-lg font-bold text-black mb-4">Load Previous Conversation</h3>
               
               {savedConversations.length === 0 ? (
                 <p className="text-gray-500">No saved conversations found.</p>
@@ -752,7 +733,7 @@ export default function Home() {
                       className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
                       onClick={() => loadConversation(conv.id)}
                     >
-                      <div className="font-medium">{conv.initial_topic}</div>
+                      <div className="font-medium text-gray-500">{conv.initial_topic}</div>
                       <div className="text-sm text-gray-600">
                         {conv.agent_names.join(' vs ')} • {new Date(conv.created_at).toLocaleDateString()}
                       </div>
