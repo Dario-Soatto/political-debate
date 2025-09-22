@@ -69,7 +69,7 @@ export async function loadConversation(conversationId: string) {
     conversation,
     turns: turns.map(turn => ({
       message: turn.message,
-      agent_name: (turn.agents as any).name,
+      agent_name: (turn.agents as unknown as { name: string })?.name || 'Unknown',
       turn_order: turn.turn_order,
       created_at: turn.created_at
     }))

@@ -26,7 +26,6 @@ export default function Home() {
   const [conversationTopics, setConversationTopics] = useState<Array<{topic: string, startIndex: number}>>([]);
   const [isGeneratingReflection, setIsGeneratingReflection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [savedConversations, setSavedConversations] = useState<Array<{
     id: string,
     initial_topic: string,
@@ -68,7 +67,6 @@ export default function Home() {
 
       // Save conversation to database
       const conversationId = await saveConversation(topic, liberalId, conservativeId);
-      setCurrentConversationId(conversationId);
       console.log('Conversation created:', conversationId);
 
       // Start the conversation and display first turn immediately
@@ -250,7 +248,10 @@ export default function Home() {
         id: conv.id,
         initial_topic: conv.initial_topic,
         created_at: conv.created_at,
-        agent_names: [(conv.agent1 as any)?.name || 'Unknown', (conv.agent2 as any)?.name || 'Unknown']
+        agent_names: [
+          Array.isArray(conv.agent1) ? conv.agent1[0]?.name || 'Unknown' : (conv.agent1 as { name: string })?.name || 'Unknown',
+          Array.isArray(conv.agent2) ? conv.agent2[0]?.name || 'Unknown' : (conv.agent2 as { name: string })?.name || 'Unknown'
+        ]
       }));
 
       setSavedConversations(conversations);
@@ -305,7 +306,6 @@ export default function Home() {
       // Set up the UI
       setAgents({ liberal: liberalAgent, conservative: conservativeAgent });
       setConversationManager(manager);
-      setCurrentConversationId(conversationId);
       setConversationHistory(uiTurns);
       setConversationTopics([{ topic: convMeta.initial_topic, startIndex: 0 }]);
       setShowConversationBrowser(false);

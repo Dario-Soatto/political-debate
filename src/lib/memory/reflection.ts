@@ -3,7 +3,6 @@ import { PoliticalAgent } from '@/lib/agents/agent';
 import { Memory } from '@/types/agent';
 import { updateBeliefSystemFromReflection } from '@/lib/beliefs/beliefUpdater';
 import { updateAgentBeliefSystem } from '@/lib/database/agents';
-import { BeliefSystem } from '@/types/agent'
 
 /**
  * Generate a reflection based on recent memories
