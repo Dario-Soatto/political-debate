@@ -34,6 +34,7 @@ export default function Home() {
   }>>([]);
   const [showConversationBrowser, setShowConversationBrowser] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [showInfoBar, setShowInfoBar] = useState(false);
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -357,8 +358,37 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold font-mono text-black text-center mb-8">Political AI Debate</h1>
+        <h1 className="text-3xl font-bold text-center mb-4 text-black">Political AI Debate</h1>
         
+        {/* Information Bar */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg mb-6">
+          <button
+            onClick={() => setShowInfoBar(!showInfoBar)}
+            className="w-full p-4 text-left flex justify-between items-center hover:bg-blue-100 transition-colors"
+          >
+            <span className="font-medium text-blue-900">About This Application</span>
+            <span className="text-blue-600 text-xl">{showInfoBar ? '−' : '+'}</span>
+          </button>
+          
+          {showInfoBar && (
+            <div className="px-4 pb-4 text-blue-800 text-sm leading-relaxed">
+              <p className="mb-3">
+                This application allows two agents that start with competing political beliefs discuss with each other and update their beliefs accordingly. Inspired by <em>Generative Agents: Interactive Simulacra of Human Behavior</em>, the agents function as follows:
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-2">
+                <li>The main orchestrator is an LLM (in this case GPT-4o—Claude often refused to role play as the conservative character)</li>
+                <li>The two LLMs &quot;talk&quot; to each other. After each exchange, the agents summarize the exchange and save the summarization to their memory streams</li>
+                <li>Each time they speak, the LLMs perform RAG over their memories to find the most relevant ones and inform their responses</li>
+                <li>The agents can also &quot;reflect&quot; on their memories—they look over their past few memories, see how they might inform their beliefs, add a reflection to their memory stream, and update their beliefs</li>
+                <li>Beliefs are encoded in natural language as a three tiered tree, and beliefs are passed into the prompt</li>
+              </ul>
+              <p className="mt-3 font-medium">
+                Hope you enjoy! You can either start a fresh conversation or continue previous ones using the Load Conversation button on the bottom.
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
@@ -429,7 +459,7 @@ export default function Home() {
                   disabled={isRunning || isSaving}
                   className="bg-indigo-600 text-white py-3 px-6 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {isSaving ? 'Saving...' : 'Save Agents'}
+                  {isSaving ? 'Saving...' : 'Backup Agents (for testing)'}
                 </button>
               </>
             )}
@@ -570,7 +600,17 @@ export default function Home() {
 
             {conversationHistory.length === 0 && !isRunning && (
               <div className="text-center text-gray-500 mt-8">
-                Click &quot;Start Debate&quot; to watch two AI agents with different political beliefs discuss a topic.
+                <p className="mb-4">Click &quot;Start Debate&quot; to watch two AI agents with different political beliefs discuss a topic.</p>
+                
+                <button
+                  onClick={() => {
+                    setShowConversationBrowser(true);
+                    loadSavedConversations();
+                  }}
+                  className="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700"
+                >
+                  Load Conversation
+                </button>
               </div>
             )}
           </div>
@@ -761,24 +801,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setShowConversationBrowser(true);
-              loadSavedConversations();
-            }}
-            disabled={isRunning}
-            className="bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 disabled:opacity-50"
-          >
-            Load Conversation
-          </button>
-        </div>
-
         {/* Conversation Browser Modal */}
         {showConversationBrowser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-              <h3 className="text-lg font-bold mb-4">Load Previous Conversation</h3>
+              <h3 className="text-lg font-bold mb-4 text-black">Load Previous Conversation</h3>
               
               {savedConversations.length === 0 ? (
                 <p className="text-gray-500">No saved conversations found.</p>
@@ -790,7 +817,7 @@ export default function Home() {
                       className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
                       onClick={() => loadConversation(conv.id)}
                     >
-                      <div className="font-medium">{conv.initial_topic}</div>
+                      <div className="font-medium text-gray-400">{conv.initial_topic}</div>
                       <div className="text-sm text-gray-600">
                         {conv.agent_names.join(' vs ')} • {new Date(conv.created_at).toLocaleDateString()}
                       </div>
