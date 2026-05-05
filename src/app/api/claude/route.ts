@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
     const { prompt } = await request.json();
     
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Fast and cost-effective, or use 'gpt-4o' for more capability
-      max_tokens: 500,
-      temperature: 0.7,
+      model: 'gpt-5',
+      max_completion_tokens: 500,
+      reasoning_effort: 'minimal',
       messages: [
         {
           role: 'user',
