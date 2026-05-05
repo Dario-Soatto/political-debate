@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { PoliticalAgent } from '@/lib/agents/agent';
 import { ConversationManager, ConversationTurn } from '@/lib/conversation/conversationManager';
+import { BeliefGraph } from './_components/BeliefGraph';
 import { createLiberalBeliefSystem, createConservativeBeliefSystem } from '@/lib/beliefs/beliefSystem';
 import { addReflectionToAgent } from '@/lib/memory/reflection';
 import { saveAgent } from '@/lib/database/agents';
@@ -35,6 +36,7 @@ export default function Home() {
   const [showConversationBrowser, setShowConversationBrowser] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [showInfoBar, setShowInfoBar] = useState(false);
+  const [graphAgent, setGraphAgent] = useState<'liberal' | 'conservative' | null>(null);
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -616,6 +618,7 @@ export default function Home() {
                 variant="liberal"
                 onReflect={() => generateReflectionForAgent(agents.liberal!, 'liberal')}
                 isReflecting={isGeneratingReflection}
+                onShowGraph={() => setGraphAgent('liberal')}
               />
             )}
 
@@ -625,11 +628,57 @@ export default function Home() {
                 variant="conservative"
                 onReflect={() => generateReflectionForAgent(agents.conservative!, 'conservative')}
                 isReflecting={isGeneratingReflection}
+                onShowGraph={() => setGraphAgent('conservative')}
               />
             )}
           </aside>
         </div>
       </div>
+
+      {/* Belief Graph Modal */}
+      {graphAgent && agents[graphAgent] && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm"
+          onClick={() => setGraphAgent(null)}
+        >
+          <div
+            className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-stone-200 p-5">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold text-white ${
+                    graphAgent === 'liberal' ? 'bg-sky-600' : 'bg-rose-600'
+                  }`}
+                >
+                  {agents[graphAgent]!.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-stone-900">
+                    {agents[graphAgent]!.name}&apos;s belief graph
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    {graphAgent === 'liberal' ? 'Liberal' : 'Conservative'} · core values → policy domains → specific issues
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setGraphAgent(null)}
+                className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              <BeliefGraph
+                beliefSystem={agents[graphAgent]!.beliefSystem}
+                variant={graphAgent}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Conversation Browser Modal */}
       {showConversationBrowser && (
@@ -685,11 +734,13 @@ function AgentCard({
   variant,
   onReflect,
   isReflecting,
+  onShowGraph,
 }: {
   agent: PoliticalAgent;
   variant: 'liberal' | 'conservative';
   onReflect: () => void;
   isReflecting: boolean;
+  onShowGraph: () => void;
 }) {
   const isLiberal = variant === 'liberal';
   const observationCount = agent.memories.filter(m => m.type === 'observation').length;
@@ -741,15 +792,27 @@ function AgentCard({
           )}
         </Disclosure>
 
-        <Disclosure title="Core values" count={agent.beliefSystem.coreValues.length}>
-          <BeliefList items={agent.beliefSystem.coreValues} />
-        </Disclosure>
-        <Disclosure title="Policy domains" count={agent.beliefSystem.domainAreas.length}>
-          <BeliefList items={agent.beliefSystem.domainAreas} />
-        </Disclosure>
-        <Disclosure title="Specific issues" count={agent.beliefSystem.specificIssues.length}>
-          <BeliefList items={agent.beliefSystem.specificIssues} />
-        </Disclosure>
+        <button
+          onClick={onShowGraph}
+          className="group flex w-full items-center justify-between p-4 text-left text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+        >
+          <span className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-4 w-4 text-stone-400">
+              <circle cx="6" cy="6" r="2" />
+              <circle cx="18" cy="6" r="2" />
+              <circle cx="12" cy="18" r="2" />
+              <path d="M7.5 7.5 L11 16.5 M16.5 7.5 L13 16.5" strokeLinecap="round" />
+            </svg>
+            <span>View belief graph</span>
+          </span>
+          <span className="flex items-center gap-2 text-xs text-stone-500">
+            {agent.beliefSystem.coreValues.length +
+              agent.beliefSystem.domainAreas.length +
+              agent.beliefSystem.specificIssues.length}{' '}
+            nodes
+            <span className="text-stone-300 transition-transform group-hover:translate-x-0.5">→</span>
+          </span>
+        </button>
       </div>
     </div>
   );
@@ -778,22 +841,3 @@ function Disclosure({
   );
 }
 
-function BeliefList({
-  items,
-}: {
-  items: Array<{ id: string; label: string; description: string }>;
-}) {
-  if (items.length === 0) {
-    return <p className="text-xs text-stone-400">None.</p>;
-  }
-  return (
-    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-      {items.map(item => (
-        <div key={item.id} className="border-l-2 border-stone-200 pl-3">
-          <h5 className="text-xs font-medium text-stone-900">{item.label}</h5>
-          <p className="mt-0.5 text-xs leading-relaxed text-stone-600">{item.description}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
