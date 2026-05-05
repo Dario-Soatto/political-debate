@@ -1,7 +1,7 @@
 // src/app/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PoliticalAgent } from '@/lib/agents/agent';
 import { ConversationManager, ConversationTurn } from '@/lib/conversation/conversationManager';
 import { BeliefGraph } from './_components/BeliefGraph';
@@ -37,6 +37,25 @@ export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [showInfoBar, setShowInfoBar] = useState(false);
   const [graphAgent, setGraphAgent] = useState<'liberal' | 'conservative' | null>(null);
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setIsAuthed(typeof window !== 'undefined' && localStorage.getItem('auth') === 'jackson');
+  }, []);
+
+  const handleLogin = (password: string): boolean => {
+    if (password === 'jackson') {
+      localStorage.setItem('auth', 'jackson');
+      // Cookie powers the API middleware; auto-sent on same-origin fetches.
+      document.cookie = 'auth=jackson; path=/; max-age=31536000; SameSite=Lax';
+      setIsAuthed(true);
+      return true;
+    }
+    return false;
+  };
+
+  if (isAuthed === null) return null;
+  if (!isAuthed) return <LoginScreen onLogin={handleLogin} />;
 
   const startNewConversation = async () => {
     setIsRunning(true);
@@ -838,6 +857,54 @@ function Disclosure({
       </summary>
       <div className="px-4 pb-4">{children}</div>
     </details>
+  );
+}
+
+function LoginScreen({ onLogin }: { onLogin: (password: string) => boolean }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = onLogin(password);
+    if (!ok) {
+      setError(true);
+      setPassword('');
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight text-stone-900">Political AI Debate</h1>
+          <p className="mt-1 text-sm text-stone-500">Enter the password to continue.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-500">
+            Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError(false);
+            }}
+            autoFocus
+            className="w-full rounded-lg border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900/5"
+          />
+          {error && <p className="mt-2 text-xs text-rose-600">Incorrect password.</p>}
+          <button
+            type="submit"
+            disabled={!password}
+            className="mt-4 w-full rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Enter
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
 
