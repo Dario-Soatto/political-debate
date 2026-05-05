@@ -104,16 +104,18 @@ export default function Home() {
     setIsRunning(true);
 
     try {
+      // Snapshot starting turn index before the loop so subsequent turns are saved with the correct order
+      const startIndex = conversationHistory.length;
+
       // Continue for the specified number of turns, displaying each one as it's generated
       for (let i = 0; i < numTurns; i++) {
         const newTurn = await conversationManager.continueConversation();
         setConversationHistory(prev => [...prev, newTurn]);
-        
+
         // Save turn to database if we have a conversation ID
         if (currentConversationId && agents.liberal && agents.conservative) {
           const agentId = newTurn.agentName === 'Alex' ? agents.liberal.id : agents.conservative.id;
-          const currentTurnCount = conversationHistory.length + i;
-          await saveConversationTurn(currentConversationId, agentId, newTurn.message, currentTurnCount);
+          await saveConversationTurn(currentConversationId, agentId, newTurn.message, startIndex + i);
         }
       }
     } catch (error) {
@@ -183,23 +185,25 @@ export default function Home() {
     setIsRunning(true);
 
     try {
+      // Snapshot starting turn index before any state updates / awaits below
+      const startIndex = conversationHistory.length;
+
       const newTurns = await conversationManager.continueWithNewTopic(newTopic.trim(), numTurns - 1);
-      
+
       // Track the new topic at the current conversation length
       setConversationTopics(prev => [...prev, {
-        topic: newTopic.trim(), 
-        startIndex: conversationHistory.length
+        topic: newTopic.trim(),
+        startIndex
       }]);
-      
+
       setConversationHistory(prev => [...prev, ...newTurns]);
-      
+
       // Save all new turns to database
       if (currentConversationId && agents.liberal && agents.conservative) {
         for (let i = 0; i < newTurns.length; i++) {
           const turn = newTurns[i];
           const agentId = turn.agentName === 'Alex' ? agents.liberal.id : agents.conservative.id;
-          const turnIndex = conversationHistory.length + i;
-          await saveConversationTurn(currentConversationId, agentId, turn.message, turnIndex);
+          await saveConversationTurn(currentConversationId, agentId, turn.message, startIndex + i);
         }
       }
       

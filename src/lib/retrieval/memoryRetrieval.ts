@@ -16,17 +16,30 @@ export async function retrieveRelevantMemories(
     const contextText = `${context.currentMessage} ${context.recentHistory.join(' ')}`;
     context.embedding = await getEmbedding(contextText);
   }
-  
-  // Calculate combined scores for each memory
+
+  const contextDim = context.embedding.length;
+
+  // Calculate combined scores for each memory.
+  // Skip memories whose embedding is missing or has a mismatched dimension —
+  // a single bad embedding would otherwise crash cosineSimilarity.
   const scoredMemories = memories
-    .filter(memory => memory.embedding) // Only memories with embeddings
+    .filter(memory => {
+      if (!memory.embedding) return false;
+      if (memory.embedding.length !== contextDim) {
+        console.warn(
+          `Skipping memory ${memory.id}: embedding dim ${memory.embedding.length} != context dim ${contextDim}`
+        );
+        return false;
+      }
+      return true;
+    })
     .map(memory => {
       const recencyScore = calculateRecencyScore(memory);
       const relevanceScore = calculateRelevanceScore(memory.embedding!, context.embedding!);
-      
+
       // Combine scores (you can adjust these weights)
       const combinedScore = (recencyScore * 0.3) + (relevanceScore * 0.7);
-      
+
       return { memory, score: combinedScore };
     })
     .sort((a, b) => b.score - a.score)

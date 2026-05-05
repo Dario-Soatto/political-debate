@@ -49,37 +49,50 @@ export async function loadMemoriesForAgent(agentId: string): Promise<Memory[]> {
   }
 
   return data.map(row => {
-    let embedding = undefined;
-    
-    if (row.embedding) {
-      // Handle different embedding formats from database
-      if (typeof row.embedding === 'string') {
-        console.log('Parsing string embedding...');
-        try {
-          embedding = JSON.parse(row.embedding);
-        } catch (e) {
-          console.error('Failed to parse embedding string:', e);
-          embedding = undefined;
-        }
-      } else if (Array.isArray(row.embedding)) {
-        embedding = row.embedding;
-      } else {
-        console.warn('Unknown embedding format:', typeof row.embedding);
-        embedding = undefined;
-      }
-    }
-    
-    console.log('Processed embedding length:', embedding?.length);
-    
     return {
       id: row.id,
       description: row.description,
       type: row.type as MemoryType,
       createdAt: new Date(row.created_at),
       lastAccessedAt: new Date(row.last_accessed_at),
-      embedding
+      embedding: parseEmbedding(row.embedding, row.id)
     };
   })
+}
+
+/**
+ * Normalize embedding into a number[] or undefined.
+ * Supabase may return embeddings as a JSON array, a JSON-encoded string,
+ * or null. Validates the result is a non-empty array of finite numbers.
+ */
+function parseEmbedding(raw: unknown, rowId: string): number[] | undefined {
+  if (raw === null || raw === undefined) return undefined;
+
+  let candidate: unknown = raw;
+  if (typeof candidate === 'string') {
+    try {
+      candidate = JSON.parse(candidate);
+    } catch (e) {
+      console.warn(`Memory ${rowId}: failed to JSON.parse embedding string:`, e);
+      return undefined;
+    }
+  }
+
+  if (!Array.isArray(candidate) || candidate.length === 0) {
+    console.warn(`Memory ${rowId}: embedding is not a non-empty array (got ${typeof candidate})`);
+    return undefined;
+  }
+
+  // Validate all entries are finite numbers
+  for (let i = 0; i < candidate.length; i++) {
+    const v = candidate[i];
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      console.warn(`Memory ${rowId}: embedding contains non-numeric value at index ${i}`);
+      return undefined;
+    }
+  }
+
+  return candidate as number[];
 }
 
 export async function updateMemoryAccess(memoryId: string): Promise<void> {

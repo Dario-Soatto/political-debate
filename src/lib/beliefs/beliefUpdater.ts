@@ -269,40 +269,38 @@ export async function updateBeliefSystemFromReflection(
     console.log(`  - ${connectedBeliefs.specificIssues.length} Specific Issues: ${connectedBeliefs.specificIssues.map(si => si.label).join(', ')}`);
   }
 
-  // Step 4: Update connected beliefs
-  console.log('\n4. UPDATING CONNECTED BELIEFS...');
+  // Step 4: Update connected beliefs (in parallel for ~10x speedup)
+  console.log('\n4. UPDATING CONNECTED BELIEFS (in parallel)...');
+
+  const [coreValueUpdates, domainAreaUpdates, specificIssueUpdates] = await Promise.all([
+    Promise.all(
+      connectedBeliefs.coreValues.map(async (cv) => {
+        const updatedDescription = await updateConnectedBelief(targetBelief, updatedTargetDescription, cv, agentName, agentIdentity);
+        console.log(`  Core Value "${cv.label}":\n    OLD: "${cv.description}"\n    NEW: "${updatedDescription}"`);
+        return { ...cv, description: updatedDescription };
+      })
+    ),
+    Promise.all(
+      connectedBeliefs.domainAreas.map(async (da) => {
+        const updatedDescription = await updateConnectedBelief(targetBelief, updatedTargetDescription, da, agentName, agentIdentity);
+        console.log(`  Domain Area "${da.label}":\n    OLD: "${da.description}"\n    NEW: "${updatedDescription}"`);
+        return { ...da, description: updatedDescription };
+      })
+    ),
+    Promise.all(
+      connectedBeliefs.specificIssues.map(async (si) => {
+        const updatedDescription = await updateConnectedBelief(targetBelief, updatedTargetDescription, si, agentName, agentIdentity);
+        console.log(`  Specific Issue "${si.label}":\n    OLD: "${si.description}"\n    NEW: "${updatedDescription}"`);
+        return { ...si, description: updatedDescription };
+      })
+    )
+  ]);
+
   const updatedConnectedBeliefs = {
-    coreValues: [] as CoreValue[],
-    domainAreas: [] as DomainArea[],
-    specificIssues: [] as SpecificIssue[]
+    coreValues: coreValueUpdates,
+    domainAreas: domainAreaUpdates,
+    specificIssues: specificIssueUpdates
   };
-
-  // Update connected core values
-  for (const cv of connectedBeliefs.coreValues) {
-    console.log(`\n  Updating Core Value: ${cv.label}`);
-    console.log(`    OLD: "${cv.description}"`);
-    const updatedDescription = await updateConnectedBelief(targetBelief, updatedTargetDescription, cv, agentName, agentIdentity);
-    console.log(`    NEW: "${updatedDescription}"`);
-    updatedConnectedBeliefs.coreValues.push({ ...cv, description: updatedDescription });
-  }
-
-  // Update connected domain areas
-  for (const da of connectedBeliefs.domainAreas) {
-    console.log(`\n  Updating Domain Area: ${da.label}`);
-    console.log(`    OLD: "${da.description}"`);
-    const updatedDescription = await updateConnectedBelief(targetBelief, updatedTargetDescription, da, agentName, agentIdentity);
-    console.log(`    NEW: "${updatedDescription}"`);
-    updatedConnectedBeliefs.domainAreas.push({ ...da, description: updatedDescription });
-  }
-
-  // Update connected specific issues
-  for (const si of connectedBeliefs.specificIssues) {
-    console.log(`\n  Updating Specific Issue: ${si.label}`);
-    console.log(`    OLD: "${si.description}"`);
-    const updatedDescription = await updateConnectedBelief(targetBelief, updatedTargetDescription, si, agentName, agentIdentity);
-    console.log(`    NEW: "${updatedDescription}"`);
-    updatedConnectedBeliefs.specificIssues.push({ ...si, description: updatedDescription });
-  }
 
   // Step 5: Apply updates to belief system
   console.log('\n5. APPLYING UPDATES TO BELIEF SYSTEM...');
