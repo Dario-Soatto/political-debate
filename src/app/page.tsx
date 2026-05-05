@@ -40,18 +40,20 @@ export default function Home() {
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setIsAuthed(typeof window !== 'undefined' && localStorage.getItem('auth') === 'jackson');
+    setIsAuthed(typeof window !== 'undefined' && localStorage.getItem('auth') === '1');
   }, []);
 
-  const handleLogin = (password: string): boolean => {
-    if (password === 'jackson') {
-      localStorage.setItem('auth', 'jackson');
-      // Cookie powers the API middleware; auto-sent on same-origin fetches.
-      document.cookie = 'auth=jackson; path=/; max-age=31536000; SameSite=Lax';
-      setIsAuthed(true);
-      return true;
-    }
-    return false;
+  const handleLogin = async (password: string): Promise<boolean> => {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) return false;
+    // Cookie was set server-side; localStorage flag drives the client UI gate across reloads.
+    localStorage.setItem('auth', '1');
+    setIsAuthed(true);
+    return true;
   };
 
   if (isAuthed === null) return null;
@@ -860,13 +862,16 @@ function Disclosure({
   );
 }
 
-function LoginScreen({ onLogin }: { onLogin: (password: string) => boolean }) {
+function LoginScreen({ onLogin }: { onLogin: (password: string) => Promise<boolean> }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = onLogin(password);
+    setSubmitting(true);
+    const ok = await onLogin(password);
+    setSubmitting(false);
     if (!ok) {
       setError(true);
       setPassword('');
@@ -897,10 +902,10 @@ function LoginScreen({ onLogin }: { onLogin: (password: string) => boolean }) {
           {error && <p className="mt-2 text-xs text-rose-600">Incorrect password.</p>}
           <button
             type="submit"
-            disabled={!password}
+            disabled={!password || submitting}
             className="mt-4 w-full rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Enter
+            {submitting ? 'Checking…' : 'Enter'}
           </button>
         </form>
       </div>
