@@ -75,7 +75,7 @@ export default function Home() {
       // Start the conversation and display first turn immediately
       const firstTurn = await manager.startConversation(topic);
       setConversationHistory([firstTurn]);
-      
+
       // Save first turn to database
       await saveConversationTurn(conversationId, liberalId, firstTurn.message, 0);
 
@@ -83,7 +83,7 @@ export default function Home() {
       for (let i = 1; i < numTurns; i++) {
         const turn = await manager.continueConversation();
         setConversationHistory(prev => [...prev, turn]);
-        
+
         // Save each turn to database
         const agentId = turn.agentName === 'Alex' ? liberalId : conservativeId;
         await saveConversationTurn(conversationId, agentId, turn.message, i);
@@ -93,7 +93,7 @@ export default function Home() {
     } finally {
       setIsRunning(false);
     }
-  };  
+  };
 
   const continueConversation = async () => {
     if (!conversationManager) {
@@ -136,7 +136,7 @@ export default function Home() {
     try {
       const newTurn = await conversationManager.continueConversation();
       setConversationHistory(prev => [...prev, newTurn]);
-      
+
       // Save turn to database if we have a conversation ID
       if (currentConversationId && agents.liberal && agents.conservative) {
         const agentId = newTurn.agentName === 'Alex' ? agents.liberal.id : agents.conservative.id;
@@ -160,13 +160,13 @@ export default function Home() {
     try {
       const newTurn = await conversationManager.injectNewTopic(newTopic.trim());
       setConversationHistory(prev => [...prev, newTurn]);
-      
+
       // Track the new topic
       setConversationTopics(prev => [...prev, {
-        topic: newTopic.trim(), 
+        topic: newTopic.trim(),
         startIndex: conversationHistory.length
       }]);
-      
+
       setNewTopic('');
       setShowTopicInput(false);
     } catch (error) {
@@ -206,7 +206,7 @@ export default function Home() {
           await saveConversationTurn(currentConversationId, agentId, turn.message, startIndex + i);
         }
       }
-      
+
       setNewTopic('');
       setShowTopicInput(false);
     } catch (error) {
@@ -218,16 +218,16 @@ export default function Home() {
 
   const generateReflectionForAgent = async (agent: PoliticalAgent, agentType: 'liberal' | 'conservative') => {
     setIsGeneratingReflection(true);
-    
+
     try {
       await addReflectionToAgent(agent, 5); // Reflect on last 5 memories
-      
+
       // Force a re-render by updating the agents state
       setAgents(prev => ({
         ...prev,
         [agentType]: agent
       }));
-      
+
       console.log(`Generated reflection for ${agent.name}`);
     } catch (error) {
       console.error(`Error generating reflection for ${agent.name}:`, error);
@@ -246,7 +246,7 @@ export default function Home() {
     try {
       const liberalId = await saveAgent(agents.liberal);
       const conservativeId = await saveAgent(agents.conservative);
-      
+
       console.log('Agents saved successfully:', { liberalId, conservativeId });
       alert('Agents saved to database!');
     } catch (error) {
@@ -298,7 +298,7 @@ export default function Home() {
   const loadConversation = async (conversationId: string) => {
     try {
       setIsRunning(true);
-      
+
       // Load conversation data
       const conversationData = await loadConversationFromDB(conversationId);
       if (!conversationData) {
@@ -360,56 +360,60 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-4 text-black">Political AI Debate</h1>
-        
-        {/* Information Bar */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg mb-6">
+    <div className="min-h-screen bg-stone-50 text-stone-900">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
+        {/* Header */}
+        <header className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-stone-900">
+              Political AI Debate
+            </h1>
+            <p className="mt-1 text-sm text-stone-500">
+              Two agents with opposing beliefs debate, reflect, and evolve.
+            </p>
+          </div>
           <button
             onClick={() => setShowInfoBar(!showInfoBar)}
-            className="w-full p-4 text-left flex justify-between items-center hover:bg-blue-100 transition-colors"
+            className="text-sm text-stone-500 transition-colors hover:text-stone-900"
           >
-            <span className="font-medium text-blue-900">About This Application</span>
-            <span className="text-blue-600 text-xl">{showInfoBar ? '−' : '+'}</span>
+            {showInfoBar ? 'Hide details' : 'About this app'}
           </button>
-          
-          {showInfoBar && (
-            <div className="px-4 pb-4 text-blue-800 text-sm leading-relaxed">
-              <p className="mb-3">
-                This application allows two agents that start with competing political beliefs discuss with each other and update their beliefs accordingly. Inspired by <em>Generative Agents: Interactive Simulacra of Human Behavior</em>, the agents function as follows:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-2">
-                <li>The main orchestrator is an LLM (in this case GPT-4o—Claude often refused to role play as the conservative character)</li>
-                <li>The two LLMs &quot;talk&quot; to each other. After each exchange, the agents summarize the exchange and save the summarization to their memory streams</li>
-                <li>Each time they speak, the LLMs perform RAG over their memories to find the most relevant ones and inform their responses</li>
-                <li>The agents can also &quot;reflect&quot; on their memories—they look over their past few memories, see how they might inform their beliefs, add a reflection to their memory stream, and update their beliefs</li>
-                <li>Beliefs are encoded in natural language as a three tiered tree, and beliefs are passed into the prompt</li>
-              </ul>
-              <p className="mt-3 font-medium">
-                Hope you enjoy! You can either start a fresh conversation or continue previous ones using the Load Conversation button on the bottom.
-              </p>
-            </div>
-          )}
-        </div>
+        </header>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* Info Section */}
+        {showInfoBar && (
+          <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-6 text-sm leading-relaxed text-stone-600 shadow-sm">
+            <p className="mb-3">
+              Two agents start with competing political beliefs, then discuss with each other and update their beliefs accordingly. Inspired by <em>Generative Agents: Interactive Simulacra of Human Behavior</em>:
+            </p>
+            <ul className="ml-1 list-disc space-y-1.5 pl-5 marker:text-stone-300">
+              <li>The main orchestrator is GPT-4o (Claude often refused to roleplay as the conservative character).</li>
+              <li>After each exchange, agents summarize and save it to their memory streams.</li>
+              <li>Each turn, the LLMs perform RAG over their memories to find the most relevant ones.</li>
+              <li>Agents can &quot;reflect&quot; — looking over recent memories, deriving new insights, and updating their beliefs.</li>
+              <li>Beliefs are stored as a three-tiered tree in natural language and passed into the prompt.</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Controls Card */}
+        <div className="mb-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_140px]">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Debate Topic:
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-500">
+                Debate topic
               </label>
               <input
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
+                className="w-full rounded-lg border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900/5 disabled:bg-stone-50 disabled:text-stone-500"
                 disabled={isRunning}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Turns:
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-500">
+                Turns
               </label>
               <input
                 type="number"
@@ -417,53 +421,50 @@ export default function Home() {
                 max="20"
                 value={numTurns}
                 onChange={(e) => setNumTurns(parseInt(e.target.value) || 1)}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
+                className="w-full rounded-lg border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900/5 disabled:bg-stone-50 disabled:text-stone-500"
                 disabled={isRunning}
               />
             </div>
           </div>
-          
-          <div className="flex gap-3 mb-4">
+
+          <div className="mt-5 flex flex-wrap items-center gap-2">
             <button
               onClick={startNewConversation}
               disabled={isRunning}
-              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isRunning ? 'Running...' : 'Start New Debate'}
+              {isRunning ? 'Running…' : conversationManager ? 'New debate' : 'Start debate'}
             </button>
-            
+
             {conversationManager && (
               <>
                 <button
                   onClick={continueConversation}
                   disabled={isRunning}
-                  className="flex-1 bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {isRunning ? 'Running...' : `Continue ${numTurns} Turns`}
+                  Continue {numTurns} turns
                 </button>
-                
                 <button
                   onClick={addSingleTurn}
                   disabled={isRunning}
-                  className="bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  +1 Turn
+                  +1 turn
                 </button>
-
                 <button
                   onClick={() => setShowTopicInput(!showTopicInput)}
                   disabled={isRunning}
-                  className="bg-purple-600 text-white py-3 px-6 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  New Topic
+                  {showTopicInput ? 'Cancel topic' : 'New topic'}
                 </button>
-
                 <button
                   onClick={saveAgentsToDatabase}
                   disabled={isRunning || isSaving}
-                  className="bg-indigo-600 text-white py-3 px-6 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  className="ml-auto inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:text-stone-900 disabled:opacity-40"
                 >
-                  {isSaving ? 'Saving...' : 'Backup Agents (for testing)'}
+                  {isSaving ? 'Saving…' : 'Backup agents'}
                 </button>
               </>
             )}
@@ -471,377 +472,328 @@ export default function Home() {
 
           {/* New Topic Input Section */}
           {showTopicInput && (
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Inject New Topic:
-                  </label>
-                  <input
-                    type="text"
-                    value={newTopic}
-                    onChange={(e) => setNewTopic(e.target.value)}
-                    placeholder="Enter a new topic to discuss..."
-                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 placeholder-gray-500"
-                    disabled={isRunning}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Turns:
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={numTurns}
-                    onChange={(e) => setNumTurns(parseInt(e.target.value) || 1)}
-                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
-                    disabled={isRunning}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-3">
+            <div className="mt-5 border-t border-stone-200 pt-5">
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-500">
+                Inject new topic
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={newTopic}
+                  onChange={(e) => setNewTopic(e.target.value)}
+                  placeholder="What should they discuss next?"
+                  className="flex-1 rounded-lg border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900/5"
+                  disabled={isRunning}
+                />
                 <button
                   onClick={injectNewTopic}
                   disabled={isRunning || !newTopic.trim()}
-                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Add Topic Only
+                  Add only
                 </button>
                 <button
                   onClick={continueWithNewTopic}
                   disabled={isRunning || !newTopic.trim()}
-                  className="flex-1 bg-purple-700 text-white py-2 px-4 rounded-md hover:bg-purple-800 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Add Topic + {numTurns} Turns
-                </button>
-                <button
-                  onClick={() => {setShowTopicInput(false); setNewTopic('');}}
-                  disabled={isRunning}
-                  className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
-                >
-                  Cancel
+                  Add + {numTurns} turns
                 </button>
               </div>
             </div>
           )}
-
-          {conversationHistory.length > 0 && (
-            <div className="mt-4 text-sm text-gray-600 text-center">
-              Total turns: {conversationHistory.length}
-            </div>
-          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Conversation History */}
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold font-mono text-black mb-4">Conversation</h2>
-            <div className="space-y-4">
-              {conversationHistory.map((turn, index) => {
-                // Check if we should show a topic header before this turn
-                const topicForThisTurn = conversationTopics.find(t => t.startIndex === index);
-                
-                return (
-                  <div key={index}>
-                    {/* Show topic header if this turn starts a new topic */}
-                    {topicForThisTurn && (
-                      <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
-                        <h3 className="font-semibold text-yellow-800 mb-2">
-                          {index === 0 ? '📋 Initial Topic:' : '🔄 New Topic:'}
-                        </h3>
-                        <p className="text-yellow-700">{topicForThisTurn.topic}</p>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <div
-                        className={`p-4 rounded-lg ${
-                          turn.agentName === 'Alex'
-                            ? 'bg-blue-100 border-l-4 border-blue-500'
-                            : 'bg-red-100 border-l-4 border-red-500'
-                        }`}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-semibold text-lg text-black">
-                            {turn.agentName} {turn.agentName === 'Alex' ? '(Liberal)' : '(Conservative)'}
-                          </h3>
-                          <span className="text-sm text-gray-500">
-                            {turn.timestamp.toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <p className="text-gray-800">{turn.message}</p>
-                      </div>
-                      
-                      {/* Show memories used for this response */}
-                      {turn.memoriesUsed && turn.memoriesUsed.length > 0 && (
-                        <div className={`ml-4 p-3 rounded border-l-2 ${
-                          turn.agentName === 'Alex' ? 'bg-blue-50 border-blue-300' : 'bg-red-50 border-red-300'
-                        }`}>
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">
-                            Memories used ({turn.memoriesUsed.length}):
-                          </h4>
-                          <div className="space-y-1">
-                            {turn.memoriesUsed.map((memory) => (
-                              <div key={memory.id} className="text-xs text-gray-600 bg-white p-2 rounded">
-                                <span className={`inline-block px-2 py-1 rounded text-xs mr-2 ${
-                                  memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                                }`}>
-                                  {memory.type}
-                                </span>
-                                {memory.description}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+        {/* Main grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Conversation */}
+          <section className="lg:col-span-2">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Conversation</h2>
+              {conversationHistory.length > 0 && (
+                <span className="text-xs text-stone-400">{conversationHistory.length} {conversationHistory.length === 1 ? 'turn' : 'turns'}</span>
+              )}
             </div>
 
-            {conversationHistory.length === 0 && !isRunning && (
-              <div className="text-center text-gray-500 mt-8">
-                <p className="mb-4">Click &quot;Start Debate&quot; to watch two AI agents with different political beliefs discuss a topic.</p>
-                
+            {conversationHistory.length === 0 && !isRunning ? (
+              <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center">
+                <p className="mb-6 text-sm text-stone-500">
+                  Start a fresh debate or load a previous conversation.
+                </p>
                 <button
                   onClick={() => {
                     setShowConversationBrowser(true);
                     loadSavedConversations();
                   }}
-                  className="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700"
+                  className="inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50"
                 >
-                  Load Conversation
+                  Load conversation
                 </button>
               </div>
-            )}
-          </div>
-
-          {/* Agent Memories and Beliefs */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold font-mono text-black">Agent Memories & Beliefs</h2>
-            
-            {/* Alex's Memories and Beliefs */}
-            {agents.liberal && (
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-blue-800">Alex (Liberal)</h3>
-                  <button
-                    onClick={() => generateReflectionForAgent(agents.liberal!, 'liberal')}
-                    disabled={isGeneratingReflection || agents.liberal.memories.filter(m => m.type === 'observation').length === 0}
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {isGeneratingReflection ? 'Reflecting...' : 'Generate Reflection'}
-                  </button>
-                </div>
-                
-                {/* Memories Section */}
-                <div className="mb-4">
-                  <h4 className="font-medium text-blue-700 mb-2">Memories ({agents.liberal.memories.length})</h4>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {agents.liberal.memories.map((memory) => (
-                      <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-blue-300">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {memory.type}
+            ) : (
+              <div className="space-y-4">
+                {conversationHistory.map((turn, index) => {
+                  const topicForThisTurn = conversationTopics.find(t => t.startIndex === index);
+                  const isAlex = turn.agentName === 'Alex';
+                  return (
+                    <div key={index}>
+                      {topicForThisTurn && (
+                        <div className="my-6 flex items-center gap-3">
+                          <div className="h-px flex-1 bg-stone-200" />
+                          <span className="whitespace-nowrap text-xs uppercase tracking-wider text-stone-500">
+                            <span className="font-medium">{index === 0 ? 'Initial topic' : 'New topic'}:</span>{' '}
+                            <span className="font-normal normal-case tracking-normal text-stone-700">{topicForThisTurn.topic}</span>
                           </span>
-                          <span className="text-xs text-gray-500">
-                            {memory.createdAt.toLocaleTimeString()}
-                          </span>
+                          <div className="h-px flex-1 bg-stone-200" />
                         </div>
-                        <p className="text-sm text-gray-700">{memory.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      )}
 
-                {/* Beliefs Section */}
-                <div>
-                  <h4 className="font-medium text-blue-700 mb-2">Belief System</h4>
-                  <div className="space-y-3">
-                    
-                    {/* Core Values */}
-                    <details className="bg-white rounded border">
-                      <summary className="p-3 cursor-pointer font-medium text-blue-800 hover:bg-blue-50">
-                        Core Values ({agents.liberal.beliefSystem.coreValues.length})
-                      </summary>
-                      <div className="px-3 pb-3 space-y-2">
-                        {agents.liberal.beliefSystem.coreValues.map((value) => (
-                          <div key={value.id} className="border-l-2 border-blue-200 pl-3">
-                            <h5 className="font-medium text-sm text-blue-900">{value.label}</h5>
-                            <p className="text-xs text-gray-600">{value.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-
-                    {/* Domain Areas */}
-                    <details className="bg-white rounded border">
-                      <summary className="p-3 cursor-pointer font-medium text-blue-800 hover:bg-blue-50">
-                        Policy Domains ({agents.liberal.beliefSystem.domainAreas.length})
-                      </summary>
-                      <div className="px-3 pb-3 space-y-2">
-                        {agents.liberal.beliefSystem.domainAreas.map((domain) => (
-                          <div key={domain.id} className="border-l-2 border-blue-300 pl-3">
-                            <h5 className="font-medium text-sm text-blue-900">{domain.label}</h5>
-                            <p className="text-xs text-gray-600">{domain.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-
-                    {/* Specific Issues */}
-                    <details className="bg-white rounded border">
-                      <summary className="p-3 cursor-pointer font-medium text-blue-800 hover:bg-blue-50">
-                        Specific Issues ({agents.liberal.beliefSystem.specificIssues.length})
-                      </summary>
-                      <div className="px-3 pb-3 space-y-2 max-h-64 overflow-y-auto">
-                        {agents.liberal.beliefSystem.specificIssues.map((issue) => (
-                          <div key={issue.id} className="border-l-2 border-blue-400 pl-3">
-                            <h5 className="font-medium text-sm text-blue-900">{issue.label}</h5>
-                            <p className="text-xs text-gray-600">{issue.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Jordan's Memories and Beliefs */}
-            {agents.conservative && (
-              <div className="bg-red-50 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-red-800">Jordan (Conservative)</h3>
-                  <button
-                    onClick={() => generateReflectionForAgent(agents.conservative!, 'conservative')}
-                    disabled={isGeneratingReflection || agents.conservative.memories.filter(m => m.type === 'observation').length === 0}
-                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {isGeneratingReflection ? 'Reflecting...' : 'Generate Reflection'}
-                  </button>
-                </div>
-                
-                {/* Memories Section */}
-                <div className="mb-4">
-                  <h4 className="font-medium text-red-700 mb-2">Memories ({agents.conservative.memories.length})</h4>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {agents.conservative.memories.map((memory) => (
-                      <div key={memory.id} className="bg-white p-3 rounded border-l-2 border-red-300">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            memory.type === 'observation' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {memory.type}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {memory.createdAt.toLocaleTimeString()}
-                          </span>
+                      <div className="flex gap-3">
+                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${isAlex ? 'bg-sky-600' : 'bg-rose-600'}`}>
+                          {isAlex ? 'A' : 'J'}
                         </div>
-                        <p className="text-sm text-gray-700">{memory.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Beliefs Section */}
-                <div>
-                  <h4 className="font-medium text-red-700 mb-2">Belief System</h4>
-                  <div className="space-y-3">
-                    
-                    {/* Core Values */}
-                    <details className="bg-white rounded border">
-                      <summary className="p-3 cursor-pointer font-medium text-red-800 hover:bg-red-50">
-                        Core Values ({agents.conservative.beliefSystem.coreValues.length})
-                      </summary>
-                      <div className="px-3 pb-3 space-y-2">
-                        {agents.conservative.beliefSystem.coreValues.map((value) => (
-                          <div key={value.id} className="border-l-2 border-red-200 pl-3">
-                            <h5 className="font-medium text-sm text-red-900">{value.label}</h5>
-                            <p className="text-xs text-gray-600">{value.description}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className={`rounded-2xl border p-4 ${isAlex ? 'border-sky-100 bg-sky-50/60' : 'border-rose-100 bg-rose-50/60'}`}>
+                            <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                              <h3 className={`text-sm font-semibold ${isAlex ? 'text-sky-900' : 'text-rose-900'}`}>
+                                {turn.agentName}
+                                <span className="ml-1.5 font-normal text-stone-500">· {isAlex ? 'Liberal' : 'Conservative'}</span>
+                              </h3>
+                              <span className="text-xs text-stone-400">{turn.timestamp.toLocaleTimeString()}</span>
+                            </div>
+                            <p className="text-sm leading-relaxed text-stone-800">{turn.message}</p>
                           </div>
-                        ))}
-                      </div>
-                    </details>
 
-                    {/* Domain Areas */}
-                    <details className="bg-white rounded border">
-                      <summary className="p-3 cursor-pointer font-medium text-red-800 hover:bg-red-50">
-                        Policy Domains ({agents.conservative.beliefSystem.domainAreas.length})
-                      </summary>
-                      <div className="px-3 pb-3 space-y-2">
-                        {agents.conservative.beliefSystem.domainAreas.map((domain) => (
-                          <div key={domain.id} className="border-l-2 border-red-300 pl-3">
-                            <h5 className="font-medium text-sm text-red-900">{domain.label}</h5>
-                            <p className="text-xs text-gray-600">{domain.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-
-                    {/* Specific Issues */}
-                    <details className="bg-white rounded border">
-                      <summary className="p-3 cursor-pointer font-medium text-red-800 hover:bg-red-50">
-                        Specific Issues ({agents.conservative.beliefSystem.specificIssues.length})
-                      </summary>
-                      <div className="px-3 pb-3 space-y-2 max-h-64 overflow-y-auto">
-                        {agents.conservative.beliefSystem.specificIssues.map((issue) => (
-                          <div key={issue.id} className="border-l-2 border-red-400 pl-3">
-                            <h5 className="font-medium text-sm text-red-900">{issue.label}</h5>
-                            <p className="text-xs text-gray-600">{issue.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Conversation Browser Modal */}
-        {showConversationBrowser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-              <h3 className="text-lg font-bold mb-4 text-black">Load Previous Conversation</h3>
-              
-              {savedConversations.length === 0 ? (
-                <p className="text-gray-500">No saved conversations found.</p>
-              ) : (
-                <div className="space-y-2">
-                  {savedConversations.map((conv) => (
-                    <div
-                      key={conv.id}
-                      className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => loadConversation(conv.id)}
-                    >
-                      <div className="font-medium text-gray-400">{conv.initial_topic}</div>
-                      <div className="text-sm text-gray-600">
-                        {conv.agent_names.join(' vs ')} • {new Date(conv.created_at).toLocaleDateString()}
+                          {turn.memoriesUsed && turn.memoriesUsed.length > 0 && (
+                            <details className="mt-2 ml-1 group">
+                              <summary className="cursor-pointer list-none text-xs text-stone-500 transition-colors hover:text-stone-900">
+                                <span className="inline-block transition-transform group-open:rotate-90">›</span>{' '}
+                                {turn.memoriesUsed.length} {turn.memoriesUsed.length === 1 ? 'memory' : 'memories'} used
+                              </summary>
+                              <div className="mt-2 space-y-1.5 pl-3">
+                                {turn.memoriesUsed.map((memory) => (
+                                  <div key={memory.id} className="flex gap-2 rounded-lg border border-stone-200 bg-white p-2.5">
+                                    <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+                                      memory.type === 'observation' ? 'bg-emerald-50 text-emerald-700' : 'bg-violet-50 text-violet-700'
+                                    }`}>
+                                      {memory.type}
+                                    </span>
+                                    <span className="text-xs text-stone-600">{memory.description}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+
+                {isRunning && (
+                  <div className="flex items-center gap-2 pl-12 pt-1 text-xs text-stone-400">
+                    <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-stone-400" />
+                    Thinking…
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Agent Sidebar */}
+          <aside className="space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Agents</h2>
+
+            {!agents.liberal && !agents.conservative && (
+              <div className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm">
+                Memories and beliefs will appear here once a debate starts.
+              </div>
+            )}
+
+            {agents.liberal && (
+              <AgentCard
+                agent={agents.liberal}
+                variant="liberal"
+                onReflect={() => generateReflectionForAgent(agents.liberal!, 'liberal')}
+                isReflecting={isGeneratingReflection}
+              />
+            )}
+
+            {agents.conservative && (
+              <AgentCard
+                agent={agents.conservative}
+                variant="conservative"
+                onReflect={() => generateReflectionForAgent(agents.conservative!, 'conservative')}
+                isReflecting={isGeneratingReflection}
+              />
+            )}
+          </aside>
+        </div>
+      </div>
+
+      {/* Conversation Browser Modal */}
+      {showConversationBrowser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm"
+          onClick={() => setShowConversationBrowser(false)}
+        >
+          <div
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-stone-200 p-5">
+              <h3 className="text-lg font-semibold text-stone-900">Load previous conversation</h3>
+              <p className="mt-1 text-sm text-stone-500">Pick up where you left off.</p>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-3">
+              {savedConversations.length === 0 ? (
+                <p className="p-4 text-sm text-stone-500">No saved conversations found.</p>
+              ) : (
+                <div className="space-y-1">
+                  {savedConversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => loadConversation(conv.id)}
+                      className="w-full rounded-lg border border-transparent p-3 text-left transition-colors hover:border-stone-200 hover:bg-stone-50"
+                    >
+                      <div className="line-clamp-1 text-sm font-medium text-stone-900">{conv.initial_topic}</div>
+                      <div className="mt-0.5 text-xs text-stone-500">
+                        {conv.agent_names.join(' vs ')} · {new Date(conv.created_at).toLocaleDateString()}
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
-              
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={() => setShowConversationBrowser(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
+            </div>
+            <div className="flex justify-end border-t border-stone-200 p-4">
+              <button
+                onClick={() => setShowConversationBrowser(false)}
+                className="rounded-lg border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+              >
+                Close
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgentCard({
+  agent,
+  variant,
+  onReflect,
+  isReflecting,
+}: {
+  agent: PoliticalAgent;
+  variant: 'liberal' | 'conservative';
+  onReflect: () => void;
+  isReflecting: boolean;
+}) {
+  const isLiberal = variant === 'liberal';
+  const observationCount = agent.memories.filter(m => m.type === 'observation').length;
+  const colors = isLiberal
+    ? { avatar: 'bg-sky-600', name: 'text-sky-900' }
+    : { avatar: 'bg-rose-600', name: 'text-rose-900' };
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b border-stone-100 p-4">
+        <div className="flex items-center gap-2.5">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white ${colors.avatar}`}>
+            {agent.name.charAt(0)}
+          </div>
+          <div>
+            <div className={`text-sm font-semibold ${colors.name}`}>{agent.name}</div>
+            <div className="text-xs text-stone-500">{isLiberal ? 'Liberal' : 'Conservative'}</div>
+          </div>
+        </div>
+        <button
+          onClick={onReflect}
+          disabled={isReflecting || observationCount === 0}
+          className="rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {isReflecting ? 'Reflecting…' : 'Reflect'}
+        </button>
       </div>
+
+      <div className="divide-y divide-stone-100">
+        <Disclosure title="Memories" count={agent.memories.length}>
+          {agent.memories.length === 0 ? (
+            <p className="text-xs text-stone-400">No memories yet.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {agent.memories.map(memory => (
+                <div key={memory.id} className="rounded-lg border border-stone-100 bg-stone-50/60 p-2.5">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+                      memory.type === 'observation' ? 'bg-emerald-50 text-emerald-700' : 'bg-violet-50 text-violet-700'
+                    }`}>
+                      {memory.type}
+                    </span>
+                    <span className="text-[10px] text-stone-400">{memory.createdAt.toLocaleTimeString()}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-stone-700">{memory.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Disclosure>
+
+        <Disclosure title="Core values" count={agent.beliefSystem.coreValues.length}>
+          <BeliefList items={agent.beliefSystem.coreValues} />
+        </Disclosure>
+        <Disclosure title="Policy domains" count={agent.beliefSystem.domainAreas.length}>
+          <BeliefList items={agent.beliefSystem.domainAreas} />
+        </Disclosure>
+        <Disclosure title="Specific issues" count={agent.beliefSystem.specificIssues.length}>
+          <BeliefList items={agent.beliefSystem.specificIssues} />
+        </Disclosure>
+      </div>
+    </div>
+  );
+}
+
+function Disclosure({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50">
+        <span>{title}</span>
+        <span className="flex items-center gap-2 text-xs text-stone-500">
+          {count}
+          <span className="text-stone-300 transition-transform group-open:rotate-90">›</span>
+        </span>
+      </summary>
+      <div className="px-4 pb-4">{children}</div>
+    </details>
+  );
+}
+
+function BeliefList({
+  items,
+}: {
+  items: Array<{ id: string; label: string; description: string }>;
+}) {
+  if (items.length === 0) {
+    return <p className="text-xs text-stone-400">None.</p>;
+  }
+  return (
+    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+      {items.map(item => (
+        <div key={item.id} className="border-l-2 border-stone-200 pl-3">
+          <h5 className="text-xs font-medium text-stone-900">{item.label}</h5>
+          <p className="mt-0.5 text-xs leading-relaxed text-stone-600">{item.description}</p>
+        </div>
+      ))}
     </div>
   );
 }
